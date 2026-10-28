@@ -1,0 +1,1668 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Прототип кабинета партнёра</title>
+<style>
+/* Макет: слева — пояснения к экрану и переключатель «Телефон / Компьютер», справа — окно кабинета.
+   Кабинет сам перестраивается под ширину своего окна (container queries): узко — мобильная раскладка,
+   от 860 px — меню слева, таблицы, две колонки. На настоящем телефоне — кабинет во всю ширину.
+   Оформление — дизайн-система Bitrix24 Air: цвета, шрифт, скругления и размеры взяты из токенов
+   @bitrix24/b24ui-nuxt 2.15 (air-design-tokens), на нём будет собран настоящий кабинет. */
+:root {
+  --page: #DFE0E3;          /* фон вокруг макета, не часть кабинета */
+  --app: #EEF2F4;           /* --air-theme-bg-color */
+  --card: #FFFFFF;          /* --ui-color-bg-content-primary */
+  --card-2: #F8FAFB;        /* --ui-color-gray-02 */
+  --ink: #333333;           /* --ui-color-base-1 */
+  --ink-2: #525C69;         /* --ui-color-base-2 */
+  --muted: #828B95;         /* --ui-color-base-3 */
+  --dim: #A8ADB4;           /* --ui-color-base-4 */
+  --line: #EDEEF0;          /* --ui-color-base-7, обводка карточек */
+  --line-2: #DFE0E3;        /* --ui-color-base-6, обводка полей */
+  --accent: #0075FF;        /* --ui-color-accent-main-primary */
+  --accent-hover: #1F86FF;  /* --ui-color-accent-main-primary-alt */
+  --accent-weak: #E6F4FF;   /* --ui-color-accent-soft-blue-2 */
+  --sel: #EDF7FF;           /* --ui-color-design-selection-bg */
+  --link: #0154C8;          /* --ui-color-accent-main-link */
+  --on-accent: #FFFFFF;
+  --ok: #24B547;            /* --ui-color-accent-extra-grass */
+  --ok-weak: #CAFFE7;       /* --ui-color-accent-soft-green-2 */
+  --ok-line: #A7FAD3;       /* --ui-color-accent-soft-green-1 */
+  --warn: #E88C02;          /* --ui-color-accent-extra-orange */
+  --warn-weak: #FFF4D6;     /* --ui-color-accent-soft-orange-2 */
+  --warn-line: #FFEBA6;     /* --ui-color-accent-soft-orange-1 */
+  --bad: #FF5752;           /* --ui-color-accent-main-alert */
+  --bad-weak: #FFE8E8;      /* --ui-color-accent-soft-red-2 */
+  --bad-line: #FFCDCC;      /* --ui-color-accent-soft-red-1 */
+  --info: #0154C8;
+  --info-weak: #E6F4FF;
+  --na: #828B95;            /* --ui-color-design-tinted-na-content */
+  --na-weak: #EDEEF0;       /* --ui-color-design-tinted-na-bg */
+  --frame: #333333;
+  --shadow: 0 30px 60px -32px rgba(0, 0, 0, .35);
+  --shadow-s: 0 2px 4px 0 rgba(0, 0, 0, .08); /* --ui-shadow-bottom-s */
+  --font-ui: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, "Helvetica Neue", Arial, sans-serif;
+  --r-xs: 6px; --r-sm: 8px; --r-md: 10px; --r-lg: 12px; --r-xl: 14px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page: #000000; --app: #171717; --card: #262626; --card-2: #1F1F1F;
+    --ink: #F8F8F8; --ink-2: #CACBCC; --muted: #A7A9AB; --dim: #828385; --line: #373838; --line-2: #555657;
+    --accent: #1587FA; --accent-hover: #2A94FF; --accent-weak: #062040; --sel: #1F3048; --link: #468BEC; --on-accent: #FFFFFF;
+    --ok: #22AC43; --ok-weak: #052717; --ok-line: #0A4C2E; --warn: #E0911D; --warn-weak: #302000; --warn-line: #5E3F00;
+    --bad: #F2473D; --bad-weak: #300E0C; --bad-line: #5E1C18; --info: #468BEC; --info-weak: #062040;
+    --na: #A7A9AB; --na-weak: #373838; --frame: #373838;
+    --shadow: 0 30px 60px -32px rgba(0, 0, 0, .8); --shadow-s: 0 2px 4px 0 rgba(0, 0, 0, .4);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --page: #000000; --app: #171717; --card: #262626; --card-2: #1F1F1F;
+  --ink: #F8F8F8; --ink-2: #CACBCC; --muted: #A7A9AB; --dim: #828385; --line: #373838; --line-2: #555657;
+  --accent: #1587FA; --accent-hover: #2A94FF; --accent-weak: #062040; --sel: #1F3048; --link: #468BEC; --on-accent: #FFFFFF;
+  --ok: #22AC43; --ok-weak: #052717; --ok-line: #0A4C2E; --warn: #E0911D; --warn-weak: #302000; --warn-line: #5E3F00;
+  --bad: #F2473D; --bad-weak: #300E0C; --bad-line: #5E1C18; --info: #468BEC; --info-weak: #062040;
+  --na: #A7A9AB; --na-weak: #373838; --frame: #373838;
+  --shadow: 0 30px 60px -32px rgba(0, 0, 0, .8); --shadow-s: 0 2px 4px 0 rgba(0, 0, 0, .4);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+[hidden] { display: none !important; }
+a { color: var(--link); text-decoration: none; }
+a:not([class]):hover { text-decoration: underline; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* ---------- Сцена ---------- */
+.stage {
+  display: grid;
+  grid-template-columns: minmax(260px, 340px) auto;
+  gap: 48px;
+  justify-content: center;
+  align-items: start;
+  padding-block: 32px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.stage[data-mode="desktop"] { grid-template-columns: 220px minmax(0, 1fr); gap: 24px; justify-content: stretch; }
+.notes { position: sticky; top: 32px; display: flex; flex-direction: column; gap: 20px; padding-top: 24px; }
+.stage[data-mode="desktop"] .notes { padding-top: 8px; gap: 16px; }
+.notes-head { display: flex; flex-direction: column; gap: 8px; }
+.eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+.notes h1 { margin: 0; font-weight: 600; font-size: 22px; line-height: 1.25; text-wrap: balance; }
+.stage[data-mode="desktop"] .notes h1 { font-size: 18px; }
+.notes p { margin: 0; color: var(--ink-2); }
+.stage[data-mode="desktop"] .notes p { font-size: 13px; }
+.mode, .theme-sw { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-lg); }
+.mode button, .theme-sw button { border: 0; background: none; padding: 7px 6px; border-radius: var(--r-sm); font-weight: 500; font-size: 13px; color: var(--ink-2); cursor: pointer; }
+.mode button[aria-pressed="true"], .theme-sw button[aria-pressed="true"] { background: var(--sel); color: var(--accent); }
+.notes details { border-top: 1px solid var(--line-2); padding-top: 16px; }
+.notes summary { cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 8px; font-weight: 600; }
+.notes summary::-webkit-details-marker { display: none; }
+.notes summary .chev { transition: transform .2s; color: var(--muted); }
+.notes details[open] summary .chev { transform: rotate(180deg); }
+.screen-list { display: flex; flex-direction: column; gap: 2px; margin-top: 8px; }
+.screen-list a { display: flex; justify-content: space-between; gap: 12px; padding: 7px 10px; border-radius: var(--r-sm); text-decoration: none; color: var(--ink-2); font-size: 14px; }
+.screen-list a span:last-child { color: var(--muted); font-size: 12px; }
+.screen-list a:hover { background: var(--card); color: var(--ink); }
+.screen-list a[aria-current="page"] { background: var(--sel); color: var(--accent); font-weight: 500; }
+.note-box { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.note-box ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 8px; color: var(--ink-2); }
+.stage[data-mode="desktop"] .note-box ul { font-size: 13px; }
+.note-tag { display: inline-block; font-size: 12px; color: var(--muted); border-top: 1px dashed var(--line-2); padding-top: 10px; }
+
+/* ---------- Окно кабинета ---------- */
+.device {
+  width: 390px;
+  height: min(844px, calc(100vh - 64px));
+  min-height: 640px;
+  border: 10px solid var(--frame);
+  border-radius: 46px;
+  overflow: hidden;
+  background: var(--app);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+}
+.stage[data-mode="desktop"] .device {
+  width: 100%;
+  max-width: 1320px;
+  height: calc(100vh - 64px);
+  min-height: 600px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-lg);
+}
+.browserbar { display: none; align-items: center; gap: 12px; padding: 8px 12px; background: var(--card); border-bottom: 1px solid var(--line); flex: none; }
+.stage[data-mode="desktop"] .browserbar { display: flex; }
+.browserbar .dots { display: flex; gap: 6px; }
+.browserbar .dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--line-2); }
+.browserbar .addr { flex: 1; max-width: 420px; margin-inline: auto; text-align: center; font-size: 12px; color: var(--muted); background: var(--app); border-radius: var(--r-sm); padding: 4px 10px; }
+.shell { flex: 1; min-height: 0; container: app / inline-size; }
+.app { height: 100%; display: flex; flex-direction: column; position: relative; background: var(--app); }
+.app-head { flex: none; display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--card); min-height: 56px; }
+.brand { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 15px; }
+.brand svg { flex: none; }
+.head-title { font-weight: 600; font-size: 16px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.updated { margin-left: auto; font-size: 12px; color: var(--muted); white-space: nowrap; }
+.icon-btn { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: var(--r-md); border: 1.5px solid var(--line); background: var(--card); cursor: pointer; flex: none; color: var(--ink-2); }
+.icon-btn:hover { border-color: var(--line-2); color: var(--ink); }
+.view { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 16px 28px; display: flex; flex-direction: column; gap: 14px; }
+.tabbar { flex: none; display: grid; grid-template-columns: repeat(5, 1fr); border-top: 1px solid var(--line); background: var(--card); padding: 6px 4px calc(8px + env(safe-area-inset-bottom, 0px)); }
+.tabbar a { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 2px; text-decoration: none; color: var(--muted); font-size: 11px; border-radius: var(--r-md); }
+.tabbar a[aria-current="page"] { color: var(--accent); font-weight: 600; }
+.tabbar a.plus span.circle { display: grid; place-items: center; width: 42px; height: 42px; margin-top: -16px; border-radius: 50%; background: var(--accent); color: var(--on-accent); box-shadow: 0 6px 14px -8px var(--accent); }
+.toast { position: absolute; left: 16px; right: 16px; bottom: 84px; background: var(--ink); color: var(--card); padding: 12px 14px; border-radius: var(--r-lg); font-size: 14px; z-index: 20; box-shadow: var(--shadow-s); }
+
+/* ---------- Общие элементы ---------- */
+h2.screen-h { margin: 0; font-weight: 600; font-size: 20px; line-height: 1.25; text-wrap: balance; }
+.sub { color: var(--muted); font-size: 13px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 14px; }
+.card-h { margin: 0 0 10px; font-size: 15px; color: var(--ink); font-weight: 600; }
+.row { display: flex; align-items: center; gap: 10px; }
+.between { justify-content: space-between; }
+.stack { display: flex; flex-direction: column; gap: 10px; }
+.stack-sm { display: flex; flex-direction: column; gap: 4px; }
+/* Кнопки: размер xl (46 px) на телефоне, lg (38 px) на компьютере; скругление 10 px, как у B24Button */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 46px; padding: 0 23px; border-radius: var(--r-md); border: 1.5px solid var(--line); background: var(--card); color: var(--ink-2); font-weight: 600; font-size: 15px; cursor: pointer; text-decoration: none; }
+.btn:hover { border-color: var(--line-2); color: var(--ink); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+.btn.block { width: 100%; }
+.btn.small { min-height: 34px; padding: 0 13px; font-size: 14px; font-weight: 500; }
+.link-btn { background: none; border: 0; padding: 0; color: var(--link); font-weight: 500; cursor: pointer; }
+/* Метки статусов — как B24Badge в «тонированном» варианте: мягкий фон, цветной текст, форма «пилюля» */
+.pill { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 8px; border-radius: 99rem; font-size: 12px; font-weight: 600; white-space: nowrap; background: var(--accent-weak); color: var(--link); }
+.pill.info { background: var(--info-weak); color: var(--info); }
+.pill.ok { background: var(--ok-weak); color: var(--ok); }
+.pill.warn { background: var(--warn-weak); color: var(--warn); }
+.pill.bad { background: var(--bad-weak); color: var(--bad); }
+.pill.neutral { background: var(--na-weak); color: var(--na); }
+.pill .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+/* Плашки — как B24Alert */
+.banner { border-radius: var(--r-md); padding: 12px 14px; font-size: 14px; display: flex; flex-direction: column; gap: 4px; }
+.banner.warn { background: var(--warn-weak); color: var(--ink); border: 1px solid var(--warn-line); }
+.banner.ok { background: var(--ok-weak); color: var(--ink); border: 1px solid var(--ok-line); }
+.banner.bad { background: var(--bad-weak); color: var(--ink); border: 1px solid var(--bad-line); }
+.banner strong { font-weight: 600; }
+/* Колонки: на узком окне .col «растворяется», порядок задаёт order; на широком — сетка */
+.cols { display: flex; flex-direction: column; gap: 14px; }
+.col { display: contents; }
+.only-wide { display: none !important; }
+.tbl-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--card); }
+.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
+.tbl th { text-align: left; font-size: 13px; color: var(--muted); font-weight: 500; padding: 11px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.tbl td { padding: 11px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.tbl tbody tr:last-child td { border-bottom: 0; }
+.tbl tbody tr[data-href] { cursor: pointer; }
+.tbl tbody tr[data-href]:hover td { background: var(--sel); }
+.tbl .r { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tbl .nw { white-space: nowrap; }
+.tbl a { font-weight: 500; text-decoration: none; color: var(--link); }
+
+/* ---------- Вход ---------- */
+.login { justify-content: center; gap: 22px; min-height: 100%; width: 100%; max-width: 400px; margin-inline: auto; }
+.login-mark { display: flex; flex-direction: column; gap: 14px; }
+.login h2 { margin: 0; font-weight: 600; font-size: 22px; line-height: 1.2; }
+.code-input { letter-spacing: .5em; font-size: 22px; text-align: center; font-variant-numeric: tabular-nums; }
+.legal-item { display: flex; flex-direction: column; gap: 6px; padding: 12px; border: 1.5px solid var(--line); border-radius: var(--r-lg); background: var(--card); }
+.legal-d summary { cursor: pointer; list-style: none; color: var(--link); font-size: 13px; font-weight: 500; }
+.legal-d summary::-webkit-details-marker { display: none; }
+.legal { margin-top: 8px; max-height: 220px; overflow: auto; font-size: 13px; line-height: 1.5; color: var(--ink-2); background: var(--card-2); border: 1px solid var(--line); border-radius: var(--r-md); padding: 10px 12px; white-space: pre-line; }
+
+/* ---------- Формы (как B24FormField + B24Input) ---------- */
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label, .field .label { font-size: 13px; font-weight: 500; color: var(--ink-2); }
+.req { color: var(--bad); }
+.input, select.input, textarea.input { width: 100%; min-height: 46px; padding: 10px 12px; border: 1px solid var(--line-2); border-radius: var(--r-sm); background: var(--card); color: var(--ink); }
+.input::placeholder { color: var(--dim); }
+.input:hover { border-color: var(--dim); }
+textarea.input { min-height: 84px; resize: vertical; }
+.input:focus { outline: 0; border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.input.invalid { border-color: var(--bad); box-shadow: inset 0 0 0 1px var(--bad); }
+.err { color: var(--bad); font-size: 13px; }
+.hint { color: var(--muted); font-size: 13px; }
+.method { display: flex; flex-direction: column; gap: 8px; }
+.method label { display: grid; grid-template-columns: 20px 1fr; gap: 10px; align-items: start; padding: 12px; border: 1.5px solid var(--line); border-radius: var(--r-lg); background: var(--card); cursor: pointer; font-size: 14px; font-weight: 400; color: var(--ink); }
+.method label:hover { border-color: var(--line-2); }
+.method input { margin: 2px 0 0; accent-color: var(--accent); width: 18px; height: 18px; }
+.method strong { display: block; font-weight: 600; }
+.method small { color: var(--muted); font-size: 13px; }
+.method label:has(input:checked) { border-color: var(--accent); background: var(--sel); }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.check { display: grid; grid-template-columns: 20px 1fr; gap: 10px; align-items: start; font-size: 14px; }
+.check input { width: 18px; height: 18px; margin: 1px 0 0; accent-color: var(--accent); }
+
+/* ---------- Главная ---------- */
+.hello { display: flex; flex-direction: column; gap: 4px; }
+.manager { display: flex; align-items: center; gap: 12px; }
+.avatar { flex: none; width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; background: var(--accent-weak); color: var(--link); font-weight: 600; }
+.manager .who { min-width: 0; flex: 1; }
+.manager .who div:first-child { font-weight: 600; }
+.manager .phone { color: var(--ink-2); font-size: 13px; user-select: all; }
+.kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.kpi { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 12px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.kpi .k-label { font-size: 12px; color: var(--ink-2); text-transform: uppercase; letter-spacing: .02em; }
+.kpi .k-value { font-weight: 600; font-size: 22px; line-height: 1.2; font-variant-numeric: tabular-nums; color: var(--ink); }
+.kpi .k-note { font-size: 12px; color: var(--muted); }
+.kpi .k-note.up { color: var(--ok); }
+.funnel { display: flex; flex-direction: column; gap: 8px; }
+.f-row { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; font-size: 13px; }
+.f-row .f-name { color: var(--ink-2); }
+.f-row .f-val { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.f-row .f-bar { grid-column: 1 / -1; height: 6px; border-radius: 99rem; background: var(--na-weak); overflow: hidden; }
+.f-row .f-bar i { display: block; height: 100%; background: var(--accent); border-radius: 99rem; }
+.f-row.zero .f-name, .f-row.zero .f-val { color: var(--muted); }
+.f-row.lost .f-bar i { background: var(--bad); }
+.list { display: flex; flex-direction: column; }
+.list > * + * { border-top: 1px solid var(--line); }
+.li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; font-size: 14px; }
+.li:first-child { padding-top: 0; }
+.li:last-child { padding-bottom: 0; }
+.li .when { color: var(--muted); font-size: 12px; white-space: nowrap; }
+
+/* ---------- Клиенты ---------- */
+.filters { display: flex; flex-direction: column; gap: 10px; }
+.search { position: relative; }
+.search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+.search .input { padding-left: 38px; }
+.chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip { flex: none; height: 32px; padding: 0 12px; border-radius: 99rem; border: 1.5px solid var(--line); background: var(--card); font-size: 13px; font-weight: 500; color: var(--ink-2); cursor: pointer; }
+.chip:hover { border-color: var(--line-2); }
+.chip[aria-pressed="true"] { background: var(--sel); color: var(--accent); border-color: var(--accent); }
+.chip .cnt { color: var(--muted); font-weight: 400; margin-left: 4px; }
+.chip[aria-pressed="true"] .cnt { color: inherit; opacity: .75; }
+.client { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-lg); text-decoration: none; color: var(--ink); }
+.client:hover { border-color: var(--line-2); box-shadow: var(--shadow-s); }
+.client .c-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.client .c-name { font-weight: 600; min-width: 0; }
+.client .c-meta { font-size: 13px; color: var(--ink-2); }
+.client .c-money { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; padding-top: 6px; border-top: 1px solid var(--line); }
+.client .c-money b { font-weight: 600; font-variant-numeric: tabular-nums; }
+.stall { color: var(--warn); font-size: 12px; font-weight: 600; }
+.empty { text-align: center; color: var(--muted); padding: 24px 8px; }
+
+/* ---------- Карточка ---------- */
+.c-head { display: flex; flex-direction: column; gap: 6px; }
+.contact-line { display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap; }
+.contact-line a { font-weight: 500; text-decoration: none; font-variant-numeric: tabular-nums; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font-size: 14px; margin: 0; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; text-align: right; }
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.step { display: grid; grid-template-columns: 22px 1fr auto; gap: 10px; align-items: start; position: relative; padding-bottom: 12px; }
+.step:last-child { padding-bottom: 0; }
+.step::before { content: ""; position: absolute; left: 10px; top: 20px; bottom: -2px; width: 2px; background: var(--line-2); }
+.step:last-child::before { display: none; }
+.step.done::before { background: var(--accent); }
+.step .mark { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line-2); background: var(--card); display: grid; place-items: center; position: relative; z-index: 1; }
+.step.done .mark { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.step.current .mark { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-weak); }
+.step.current .mark::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.step.lost .mark { background: var(--bad); border-color: var(--bad); color: var(--on-accent); }
+.step .s-name { font-size: 14px; color: var(--ink-2); padding-top: 1px; }
+.step.done .s-name, .step.current .s-name { color: var(--ink); }
+.step.current .s-name { font-weight: 600; }
+.step.lost .s-name { color: var(--bad); font-weight: 600; }
+.step .s-date { font-size: 12px; color: var(--muted); padding-top: 2px; font-variant-numeric: tabular-nums; }
+.paid-bar { height: 8px; border-radius: 99rem; background: var(--na-weak); overflow: hidden; }
+.paid-bar i { display: block; height: 100%; background: var(--accent); border-radius: 99rem; }
+.acc { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 10px 0; }
+.acc + .acc { border-top: 1px solid var(--line); }
+.acc .a-date { font-size: 12px; color: var(--muted); }
+.acc .a-formula { font-size: 14px; font-variant-numeric: tabular-nums; }
+.acc .a-formula b { font-weight: 600; }
+.acc .a-side { grid-row: 1 / span 2; grid-column: 2; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.acc .a-pay { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.timeline { display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
+.timeline div { display: grid; grid-template-columns: 52px 1fr; gap: 10px; }
+.timeline time { color: var(--muted); font-size: 12px; padding-top: 2px; font-variant-numeric: tabular-nums; }
+
+/* ---------- Вознаграждение ---------- */
+/* Вкладки — как B24Tabs (вариант link): текст + подчёркивание у активной */
+.tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; border-bottom: 1px solid var(--line-2); }
+.tabs button { border: 0; background: none; padding: 10px 2px 9px; font-weight: 500; font-size: 14px; color: var(--muted); cursor: pointer; position: relative; border-radius: var(--r-md) var(--r-md) 0 0; }
+.tabs button:hover { color: var(--accent); }
+.tabs button[aria-selected="true"] { color: var(--accent); }
+.tabs button[aria-selected="true"]::after { content: ""; position: absolute; left: 8px; right: 8px; bottom: -1px; height: 3px; border-radius: 99rem; background: var(--accent); }
+.month { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-lg); }
+.month summary { list-style: none; cursor: pointer; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.month summary::-webkit-details-marker { display: none; }
+.month .m-title { display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
+.month .m-title .chev { color: var(--muted); transition: transform .2s; }
+.month[open] .m-title .chev { transform: rotate(180deg); }
+.m-sums { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.m-sums div { display: flex; flex-direction: column; font-size: 12px; color: var(--muted); }
+.m-sums b { font-size: 14px; color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.m-body { padding: 0 14px 12px; display: flex; flex-direction: column; gap: 8px; }
+.m-sec { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 600; padding-top: 6px; }
+.m-line { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; font-size: 14px; }
+.m-line .ml-sub { font-size: 12px; color: var(--muted); grid-column: 1; }
+.m-line .ml-sum { grid-row: 1 / span 2; grid-column: 2; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.m-line.bonus .ml-sum { color: var(--ok); }
+.rates { width: 100%; border-collapse: collapse; font-size: 14px; }
+.rates td { padding: 9px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+.rates tr:last-child td { border-bottom: 0; }
+.rates td:last-child { text-align: right; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.rates small { display: block; color: var(--muted); font-size: 12px; font-weight: 400; }
+.more-list button, .more-list a { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 14px 0; background: none; border: 0; border-bottom: 1px solid var(--line); color: var(--ink); text-align: left; cursor: pointer; font-weight: 500; text-decoration: none; }
+.more-list > :last-child { border-bottom: 0; }
+.more-list button:hover, .more-list a:hover { color: var(--accent); }
+.more-list .chev-r { color: var(--muted); }
+
+/* ---------- Документы ---------- */
+.doc { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 0; }
+.doc + .doc { border-top: 1px solid var(--line); }
+.doc:first-child { padding-top: 0; }
+.doc:last-child { padding-bottom: 0; }
+.doc .d-ico { width: 38px; height: 38px; border-radius: var(--r-md); display: grid; place-items: center; background: var(--accent-weak); color: var(--link); font-size: 10px; font-weight: 700; letter-spacing: .02em; }
+.doc .d-name { font-weight: 500; font-size: 14px; }
+.done-mark { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; background: var(--ok-weak); color: var(--ok); }
+
+/* ---------- Широкое окно кабинета (компьютер) ---------- */
+@container app (min-width: 860px) {
+  .app { display: grid; grid-template-columns: 232px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); grid-template-areas: "head head" "side view"; }
+  .app.no-side { grid-template-columns: minmax(0, 1fr); grid-template-areas: "head" "view"; }
+  .app-head { grid-area: head; padding: 10px 24px; }
+  .view { grid-area: view; padding: 24px 32px 40px; gap: 20px; font-size: 14px; }
+  /* Боковое меню — как B24NavigationMenu (vertical): активный пункт на светло-синем фоне */
+  .tabbar { grid-area: side; display: flex; flex-direction: column; gap: 2px; padding: 16px 12px; border-top: 0; border-right: 1px solid var(--line); }
+  .tabbar a { flex-direction: row; justify-content: flex-start; gap: 10px; padding: 9px 12px; font-size: 14px; color: var(--ink-2); }
+  .tabbar a:hover { background: var(--app); color: var(--ink); }
+  .tabbar a[aria-current="page"] { background: var(--sel); color: var(--accent); font-weight: 500; }
+  .tabbar a.plus { order: -1; justify-content: center; min-height: 38px; background: var(--accent); color: var(--on-accent); font-weight: 600; margin-bottom: 12px; }
+  .tabbar a.plus:hover { background: var(--accent-hover); color: var(--on-accent); }
+  /* на экране передачи основная кнопка — отправка формы; пункт меню — как выбранный (одна основная на экран) */
+  .tabbar a.plus[aria-current="page"] { background: var(--sel); color: var(--accent); }
+  .tabbar a.plus span.circle { width: auto; height: auto; margin: 0; background: none; box-shadow: none; border-radius: 0; color: inherit; }
+  .toast { left: auto; right: 24px; bottom: 24px; width: 380px; }
+  h2.screen-h { font-size: 22px; }
+  .btn { min-height: 38px; padding: 0 17px; }
+  .btn.small { min-height: 34px; padding: 0 13px; }
+  .input, select.input { min-height: 38px; padding: 7px 12px; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+  .cols.c-3-2 { grid-template-columns: 3fr 2fr; }
+  .col { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+  .only-wide { display: block !important; }
+  .only-narrow { display: none !important; }
+  .kpis { grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .kpi { padding: 14px 16px; }
+  .cta { width: auto; align-self: flex-start; }
+  .filters { display: grid; grid-template-columns: minmax(0, 1fr) 200px 220px; grid-template-areas: "search period village" "chips chips chips"; }
+  .filters .search { grid-area: search; }
+  .filters .chips { grid-area: chips; }
+  .filters .two { display: contents; }
+  .filters #period { grid-area: period; }
+  .filters #village { grid-area: village; }
+  .tabs { max-width: 520px; }
+  .narrow-form { max-width: 920px; }
+  .w-860 { max-width: 860px; }
+  .w-640 { max-width: 640px; }
+}
+
+/* ---------- Настоящий телефон: кабинет во всю ширину ---------- */
+@media (max-width: 780px) {
+  .stage, .stage[data-mode] { display: flex; flex-direction: column; gap: 0; padding: 0; }
+  .notes, .stage[data-mode] .notes {
+    position: static;
+    padding: 12px 16px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    gap: 10px;
+    background: var(--card);
+    border-bottom: 1px solid var(--line);
+  }
+  .notes-head p, .notes .eyebrow, .mode { display: none; }
+  .notes h1, .stage[data-mode] .notes h1 { font-size: 16px; }
+  .notes details { border-top: 0; padding-top: 0; }
+  .device, .stage[data-mode] .device { width: 100%; height: auto; min-height: 0; border: 0; border-radius: 0; box-shadow: none; overflow: visible; }
+  .stage[data-mode] .browserbar { display: none; }
+  .shell { flex: none; container-type: normal; }
+  .app { height: auto; min-height: 100vh; }
+  .app-head { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 10; }
+  .view { overflow: visible; }
+  .tabbar { position: sticky; bottom: 0; z-index: 10; }
+  .toast { position: fixed; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}
+</style>
+<script>
+  /* Тема: по умолчанию светлая, выбор запоминается (кнопки «Светлая / Тёмная» в пояснениях) */
+  (function () {
+    var t = 'light';
+    try { if (localStorage.getItem('zk-proto-theme') === 'dark') t = 'dark'; } catch (e) { /* хранилище недоступно — светлая */ }
+    document.documentElement.setAttribute('data-theme', t);
+  })();
+</script>
+</head>
+<body>
+<div class="stage" id="stage" data-mode="phone">
+  <aside class="notes" aria-label="Пояснения к прототипу">
+    <div class="notes-head">
+      <span class="eyebrow">Прототип для обсуждения</span>
+      <h1>Кабинет партнёра</h1>
+      <p>Кликабельный макет: можно переходить между экранами, фильтровать список, заполнять форму передачи клиента. Имена, суммы и ставки условные.</p>
+    </div>
+    <div class="mode" role="group" aria-label="Устройство">
+      <button type="button" data-mode="phone" aria-pressed="true">Телефон</button>
+      <button type="button" data-mode="desktop" aria-pressed="false">Компьютер</button>
+    </div>
+    <div class="theme-sw" role="group" aria-label="Тема">
+      <button type="button" data-theme-set="light" aria-pressed="true">Светлая</button>
+      <button type="button" data-theme-set="dark" aria-pressed="false">Тёмная</button>
+    </div>
+    <details id="about" open>
+      <summary><span id="noteTitle">Экран</span><svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></summary>
+      <div class="note-box" id="noteBox"></div>
+      <nav class="screen-list" id="screenList" aria-label="Экраны прототипа"></nav>
+    </details>
+  </aside>
+
+  <div class="device">
+    <div class="browserbar" aria-hidden="true"><span class="dots"><i></i><i></i><i></i></span><span class="addr">agent.ваш-домен.ru</span></div>
+    <div class="shell">
+      <div class="app" id="app">
+        <header class="app-head" id="head"></header>
+        <main class="view" id="view" tabindex="-1"></main>
+        <nav class="tabbar" id="tabbar" aria-label="Разделы кабинета"></nav>
+        <div class="toast" id="toast" role="status" hidden></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ===================== Данные (условные) ===================== */
+  var TODAY = '2026-10-19';
+  var UPDATED = '14:32';
+  var STAGES = ['', 'Передан', 'Ведёт партнёр', 'В работе у менеджера', 'Показ', 'Принимает решение', 'Бронь', 'Договор', 'Оплата в рассрочку', 'Сделка закрыта', 'Не состоялась'];
+  var METHODS = { self: 'Ведёт сам', pick: 'На подбор', deal: 'На оформление' };
+  var RATES = { self: 2, pick: 1.5, deal: 2, base: 0 }; // тестовые ставки (Е5): «На подбор» 1,5 %, остальные 2 %, клиент из базы — 0 %
+  var VILLAGES = [
+    { name: 'Сосновый берег', dir: 'ИЖС' },
+    { name: 'Лесные дали', dir: 'ИЖС' },
+    { name: 'Озёрный', dir: 'ИЖС' },
+    { name: 'Технопарк «Восток»', dir: 'ПРОМ' }
+  ];
+  var PARTNER = { first: 'Алексей', full: 'Голубев Алексей Сергеевич', phone: '+7 916 731-25-48', email: 'a.golubev@example.ru' };
+  var PM = { name: 'Ольга Никитина', role: 'Ваш менеджер по партнёрам', phone: '+7 916 245-18-30' };
+  var MANAGERS = { 'Дмитрий Козлов': '+7 916 300-42-17', 'Игорь Савельев': '+7 916 300-58-64' };
+  var STALL_DAYS = 30;
+
+  /* Реквизиты (В7): состав — минимум по форме работы; примеры проходят проверку контрольных цифр */
+  var FORMS = { person: 'Физическое лицо', np: 'Самозанятый', ip: 'ИП', org: 'Агентство (ООО)' };
+  var BANKS = { '044525225': 'ПАО Сбербанк', '044525974': 'АО «ТБанк»' };
+  var REQ_SAMPLE = {
+    person: { name: 'Голубев Алексей Сергеевич', inn: '502714638156', bik: '044525225', acc: '40817810953800027316' },
+    np: { name: 'Голубев Алексей Сергеевич', inn: '502714638156', bik: '044525225', acc: '40817810953800027316' },
+    ip: { name: 'ИП Голубев Алексей Сергеевич', inn: '502714638156', ogrnip: '324502700048120', bik: '044525225', acc: '40802810453800014821' },
+    org: { name: 'ООО «Агентство Земля»', inn: '7728145639', ogrn: '1247700123450', kpp: '772801001', bik: '044525225', acc: '40702810963800012345' }
+  };
+  var ST = {
+    wait: { t: 'Ждёт договора', c: 'neutral' },
+    forecast: { t: 'Прогноз', c: 'info' },
+    accrued: { t: 'Начислено', c: '' },
+    topay: { t: 'К выплате', c: 'warn' },
+    paid: { t: 'Выплачено', c: 'ok' },
+    none: { t: 'Не начислено', c: 'bad' }
+  };
+
+  var clients = [
+    { id: 1, name: 'Иванов Сергей Петрович', phone: '+7 916 482-45-67', email: 's.ivanov@example.ru', dir: 'ИЖС', method: 'deal',
+      village: 'Сосновый берег', plot: '45', area: 8, passed: '2026-08-14', changed: '2026-10-05', stage: 8,
+      manager: 'Дмитрий Козлов', contract: 2400000, paid: 1200000, rate: 2, fixedUntil: '2027-02-14',
+      path: [[1, '2026-08-14'], [3, '2026-08-15'], [4, '2026-08-20'], [6, '2026-08-27'], [7, '2026-09-02'], [8, '2026-09-05']],
+      accruals: [
+        { date: '2026-09-05', base: 600000, status: 'paid', payDate: '2026-10-15' },
+        { date: '2026-10-05', base: 600000, status: 'topay', payDate: '2026-11-15' }
+      ],
+      history: [['2026-10-05', 'Клиент оплатил счёт, начислено 12 000 ₽'], ['2026-09-05', 'Первая оплата — ставка 2 % закреплена за сделкой'], ['2026-09-02', 'Подписан договор'], ['2026-08-27', 'Участок забронирован'], ['2026-08-20', 'Проведён показ'], ['2026-08-15', 'Клиент взят в работу'], ['2026-08-14', 'Вы передали клиента']] },
+    { id: 2, name: 'Петрова Анна Викторовна', phone: '+7 903 117-82-09', email: 'anna.petrova@example.ru', dir: 'ИЖС', method: 'pick',
+      village: 'Лесные дали', plot: '', budget: '1,5–2 млн ₽', areaWish: '10–12 сот.', passed: '2026-10-02', changed: '2026-10-16', stage: 4,
+      manager: 'Дмитрий Козлов', rate: 1.5, fixedUntil: '2027-04-02',
+      path: [[1, '2026-10-02'], [3, '2026-10-03'], [4, '2026-10-16']],
+      history: [['2026-10-16', 'Назначен показ участков'], ['2026-10-03', 'Клиент взят в работу'], ['2026-10-02', 'Вы передали клиента']] },
+    { id: 3, name: 'ООО «СтройЛайн»', contact: 'Белов Николай', phone: '+7 495 640-21-18', email: 'office@stroyline.example', dir: 'ПРОМ', method: 'pick',
+      village: 'Технопарк «Восток»', plot: '12', area: 45, passed: '2026-08-28', changed: '2026-10-03', stage: 7,
+      manager: 'Игорь Савельев', contract: 6800000, paid: 0, rate: 1.5, fixedUntil: '2027-02-28',
+      path: [[1, '2026-08-28'], [3, '2026-08-29'], [4, '2026-09-08'], [5, '2026-09-10'], [6, '2026-09-24'], [7, '2026-10-03']],
+      history: [['2026-10-03', 'Подписан договор'], ['2026-09-24', 'Участок забронирован'], ['2026-09-10', 'Клиент принимает решение'], ['2026-09-08', 'Проведён показ'], ['2026-08-29', 'Клиент взят в работу'], ['2026-08-28', 'Вы передали клиента']] },
+    { id: 4, name: 'Смирнов Олег Игоревич', phone: '+7 925 300-14-52', email: '', dir: 'ИЖС', method: 'self',
+      village: 'Озёрный', plot: '', passed: '2026-10-09', changed: '2026-10-09', stage: 2,
+      manager: '', rate: 2, fixedUntil: '2027-04-09',
+      path: [[1, '2026-10-09'], [2, '2026-10-09']],
+      history: [['2026-10-09', 'Вы передали клиента и ведёте его сами']] },
+    { id: 5, name: 'Кузнецова Мария Андреевна', phone: '+7 916 774-03-91', email: 'm.kuznetsova@example.ru', dir: 'ИЖС', method: 'deal',
+      village: 'Сосновый берег', plot: '12', area: 6, passed: '2026-06-30', changed: '2026-08-12', stage: 9,
+      manager: 'Дмитрий Козлов', contract: 1850000, paid: 1850000, rate: 2, fixedUntil: '2026-12-30',
+      path: [[1, '2026-06-30'], [3, '2026-07-01'], [4, '2026-07-04'], [6, '2026-07-10'], [7, '2026-07-20'], [9, '2026-08-12']],
+      accruals: [{ date: '2026-08-12', base: 1850000, status: 'paid', payDate: '2026-09-15' }],
+      history: [['2026-08-12', 'Полная оплата, сделка закрыта'], ['2026-07-20', 'Подписан договор'], ['2026-07-10', 'Участок забронирован'], ['2026-07-04', 'Проведён показ'], ['2026-07-01', 'Клиент взят в работу'], ['2026-06-30', 'Вы передали клиента']] },
+    { id: 6, name: 'Волков Игорь Сергеевич', phone: '+7 999 215-66-40', email: '', dir: 'ИЖС', method: 'pick',
+      village: 'Лесные дали', plot: '', passed: '2026-08-20', changed: '2026-09-29', stage: 10,
+      manager: 'Игорь Савельев', rate: 1.5, fixedUntil: '2027-02-20',
+      notAccrued: 'Сделка не состоялась: клиент выбрал другой вариант.',
+      path: [[1, '2026-08-20'], [3, '2026-08-21'], [4, '2026-09-05'], [5, '2026-09-12'], [10, '2026-09-29']],
+      history: [['2026-09-29', 'Сделка не состоялась: клиент выбрал другой вариант'], ['2026-09-12', 'Клиент принимает решение'], ['2026-09-05', 'Проведён показ'], ['2026-08-21', 'Клиент взят в работу'], ['2026-08-20', 'Вы передали клиента']] },
+    { id: 7, name: 'Морозов Павел Андреевич', phone: '+7 926 551-37-80', email: 'p.morozov@example.ru', dir: 'ИЖС', method: 'pick',
+      village: 'Озёрный', plot: '', budget: 'до 1,2 млн ₽', areaWish: '6–8 сот.', passed: '2026-08-31', changed: '2026-09-02', stage: 3,
+      manager: 'Дмитрий Козлов', rate: 1.5, fixedUntil: '2027-02-28',
+      path: [[1, '2026-08-31'], [3, '2026-09-02']],
+      history: [['2026-09-02', 'Клиент взят в работу'], ['2026-08-31', 'Вы передали клиента']] },
+    { id: 8, name: 'Лебедева Екатерина Олеговна', phone: '+7 915 862-20-14', email: 'e.lebedeva@example.ru', dir: 'ИЖС', method: 'self',
+      village: 'Озёрный', plot: '7', area: 10, passed: '2026-09-11', changed: '2026-10-14', stage: 6, fromBase: true,
+      manager: 'Игорь Савельев', contract: 2100000, paid: 0, rate: 0, fixedUntil: '2027-03-11',
+      notAccrued: 'Клиент уже был в базе компании — по условиям программы вознаграждение не начисляется.',
+      path: [[1, '2026-09-11'], [2, '2026-09-11'], [3, '2026-09-25'], [4, '2026-09-30'], [6, '2026-10-14']],
+      history: [['2026-10-14', 'Участок забронирован'], ['2026-09-30', 'Проведён показ'], ['2026-09-25', 'Вы передали клиента менеджеру'], ['2026-09-11', 'Вы передали клиента; он уже был в базе компании']] },
+    { id: 9, name: 'Новиков Андрей Павлович', phone: '+7 977 410-58-23', email: 'novikov.ap@example.ru', dir: 'ИЖС', method: 'deal',
+      village: 'Сосновый берег', plot: '31', area: 10, passed: '2026-09-01', changed: '2026-10-12', stage: 9,
+      manager: 'Дмитрий Козлов', contract: 2950000, paid: 2950000, rate: 2, fixedUntil: '2027-03-01',
+      path: [[1, '2026-09-01'], [3, '2026-09-02'], [4, '2026-09-06'], [6, '2026-09-15'], [7, '2026-09-25'], [9, '2026-10-12']],
+      accruals: [{ date: '2026-10-12', base: 2950000, status: 'accrued' }],
+      history: [['2026-10-12', 'Полная оплата, сделка закрыта. Начислено 59 000 ₽'], ['2026-09-25', 'Подписан договор'], ['2026-09-15', 'Участок забронирован'], ['2026-09-06', 'Проведён показ'], ['2026-09-02', 'Клиент взят в работу'], ['2026-09-01', 'Вы передали клиента']] },
+    { id: 10, name: 'Соколов Дмитрий Андреевич', phone: '+7 903 552-71-36', email: 'd.sokolov@example.ru', dir: 'ИЖС', method: 'deal',
+      village: 'Лесные дали', plot: '18', area: 8, passed: '2026-09-18', changed: '2026-10-10', stage: 6,
+      manager: 'Игорь Савельев', contract: 1600000, paid: 50000, rate: 2, fixedUntil: '2027-03-18',
+      path: [[1, '2026-09-18'], [3, '2026-09-19'], [4, '2026-09-26'], [6, '2026-10-10']],
+      accruals: [{ date: '2026-10-10', base: 50000, status: 'wait', deposit: true }],
+      history: [['2026-10-10', 'Оплачен задаток за бронь — ставка 2 % закреплена; с задатка начислим после подписания договора'], ['2026-10-10', 'Участок забронирован'], ['2026-09-26', 'Проведён показ'], ['2026-09-19', 'Клиент взят в работу'], ['2026-09-18', 'Вы передали клиента']] }
+  ];
+
+  var months = [
+    { label: 'Октябрь 2026', accrued: 71000, topay: 12000, paid: 17000, lines: {
+      acc: [['Новиков А. П.', '2 % от 2 950 000 ₽', 59000, 'accrued'], ['Иванов С. П.', '2 % от 600 000 ₽', 12000, 'topay']],
+      pay: { date: '15.10.2026', method: 'перевод на расчётный счёт', act: true, items: [['Иванов С. П.', 'начисление от 05.09.2026', 12000]], bonus: [['Бонус: три договора за квартал', 'начислил менеджер по партнёрам', 5000]] } } },
+    { label: 'Сентябрь 2026', accrued: 12000, topay: 0, paid: 37000, lines: {
+      acc: [['Иванов С. П.', '2 % от 600 000 ₽', 12000, 'paid']],
+      pay: { date: '15.09.2026', method: 'перевод на расчётный счёт', act: true, items: [['Кузнецова М. А.', 'начисление от 12.08.2026', 37000]], bonus: [] } } },
+    { label: 'Август 2026', accrued: 37000, topay: 0, paid: 0, lines: {
+      acc: [['Кузнецова М. А.', '2 % от 1 850 000 ₽', 37000, 'paid']], pay: null } }
+  ];
+
+  /* Документы (Л3): личные — видит только этот партнёр, общие — все; загружает менеджер по партнёрам */
+  var DOCS = {
+    personal: [['Агентский договор № П-0147', 'PDF', '240 КБ', '2026-06-10'], ['Акт к выплате 15.10.2026', 'PDF', '96 КБ', '2026-10-15'], ['Акт к выплате 15.09.2026', 'PDF', '94 КБ', '2026-09-15']],
+    common: [['Условия партнёрской программы', 'PDF', '180 КБ', '2026-06-01'], ['Презентация посёлка «Сосновый берег»', 'PDF', '4,2 МБ', '2026-09-20'],
+      ['Презентация посёлка «Лесные дали»', 'PDF', '3,8 МБ', '2026-09-20'], ['Прайс-лист ИЖС, октябрь 2026', 'XLSX', '48 КБ', '2026-10-01']]
+  };
+
+  var S = {
+    filter: 'all', search: '', period: 'all', village: '',
+    moneyTab: 'acc',
+    login: { step: 'email', email: '' },
+    accepted: false,
+    // реквизиты: saved — заполнены (у партнёра уже были выплаты); empty — новый партнёр; mode — первый ввод или заявка на смену
+    req: { status: 'saved', data: { form: 'ip', name: REQ_SAMPLE.ip.name, inn: REQ_SAMPLE.ip.inn, ogrnip: REQ_SAMPLE.ip.ogrnip, bik: REQ_SAMPLE.ip.bik, acc: REQ_SAMPLE.ip.acc },
+      mode: 'first', draft: null, request: null }
+  };
+
+  /* ===================== Утилиты ===================== */
+  var MON = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+  var MON_FULL = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (ch) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]; }); }
+  function parts(iso) { var p = iso.split('-'); return { y: +p[0], m: +p[1], d: +p[2] }; }
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+  function dFull(iso) { var p = parts(iso); return pad(p.d) + '.' + pad(p.m) + '.' + p.y; }
+  function dShort(iso) { var p = parts(iso); return p.d + ' ' + MON[p.m - 1]; }
+  function dWords(iso) { var p = parts(iso); return p.d + ' ' + MON_FULL[p.m - 1]; }
+  function days(a, b) { return Math.round((Date.parse(b) - Date.parse(a)) / 86400000); }
+  function rub(n) { return new Intl.NumberFormat('ru-RU').format(Math.round(n)) + ' ₽'; }
+  function mln(n) { return (n / 1e6).toLocaleString('ru-RU', { maximumFractionDigits: 1 }) + ' млн ₽'; }
+  function pct(r) { return String(r).replace('.', ',') + ' %'; }
+  function digits(s) { return String(s).replace(/\D/g, ''); }
+  function mask(phone) { var d = digits(phone); return '+7 *** ***-' + d.slice(-4, -2) + '-' + d.slice(-2); }
+  function addMonths(iso, n) { var p = parts(iso); var d = new Date(Date.UTC(p.y, p.m - 1 + n, p.d)); return d.toISOString().slice(0, 10); }
+  function byId(id) { for (var i = 0; i < clients.length; i++) if (clients[i].id === id) return clients[i]; return null; }
+  function short(name) { var p = name.split(' '); return p.length < 3 ? name : p[0] + ' ' + p[1][0] + '. ' + p[2][0] + '.'; }
+  function initials(name) { var p = name.split(' '); return (p[0][0] + (p[1] ? p[1][0] : '')).toUpperCase(); }
+  function plotText(c) { return c.village + (c.plot ? ', уч. ' + c.plot : ''); }
+  function stalled(c) { return c.stage <= 8 && days(c.changed, TODAY) > STALL_DAYS; }
+  function stageCls(c) { return c.stage === 10 ? 'bad' : c.stage === 9 ? 'ok' : 'neutral'; }
+  function stagePill(c) { return '<span class="pill ' + stageCls(c) + '"><span class="dot"></span>' + STAGES[c.stage] + '</span>'; }
+
+  function reward(c) {
+    if (c.notAccrued) return { status: 'none', sum: null };
+    var acc = c.accruals || [];
+    if (acc.length) {
+      var sum = 0;
+      acc.forEach(function (a) { sum += a.base * c.rate / 100; });
+      var st = ['wait', 'accrued', 'topay'].filter(function (s) { return acc.some(function (a) { return a.status === s; }); })[0] || 'paid';
+      return { status: st, sum: sum };
+    }
+    if (c.contract) return { status: 'forecast', sum: c.contract * c.rate / 100 };
+    return null;
+  }
+  function pill(status) { var s = ST[status]; return '<span class="pill ' + s.c + '">' + s.t + '</span>'; }
+  function payText(a) { return a.status === 'paid' ? 'выплачено ' + dFull(a.payDate) : a.status === 'topay' ? 'выплата ' + dFull(a.payDate) : a.status === 'wait' ? 'после договора' : 'ждёт подтверждения'; }
+  function accLabel(a) { return (a.deposit ? 'задаток ' : 'счёт оплачен ') + dFull(a.date); }
+  function forecastList() { return clients.filter(function (c) { return !c.notAccrued && c.rate > 0 && c.contract && c.contract > (c.paid || 0); }); }
+
+  /* Проверка реквизитов: контрольные числа ИНН, связка БИК и счёта (как в модуле, В7) */
+  function innOk(s) {
+    var d = s.split('').map(Number);
+    function k(w) { var sum = 0; for (var i = 0; i < w.length; i++) sum += w[i] * d[i]; return sum % 11 % 10; }
+    if (d.length === 10) return k([2, 4, 10, 3, 5, 9, 4, 6, 8]) === d[9];
+    if (d.length === 12) return k([7, 2, 4, 10, 3, 5, 9, 4, 6, 8]) === d[10] && k([3, 7, 2, 4, 10, 3, 5, 9, 4, 6, 8]) === d[11];
+    return false;
+  }
+  function accOk(acc, bik) {
+    if (acc.length !== 20 || bik.length !== 9) return false;
+    var s = bik.slice(-3) + acc, w = [7, 1, 3], sum = 0;
+    for (var i = 0; i < s.length; i++) sum += (+s[i]) * w[i % 3];
+    return sum % 10 === 0;
+  }
+  function accGroups(acc) { return acc.replace(/(\d{5})(\d{3})(\d)(\d{4})(\d{7})/, '$1 $2 $3 $4 $5'); }
+  function reqBanner() {
+    if (S.req.status !== 'empty') return '';
+    return '<div class="banner warn"><strong>Заполните реквизиты для выплат</strong><span>Без реквизитов выплаты не начнутся. Начисления сохраняются и попадут в выплату после заполнения.</span>' +
+      '<a href="#requisites">Заполнить реквизиты</a></div>';
+  }
+
+  var I = {
+    home: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3.5 10.5 12 3.5l8.5 7V20.5h-5.5v-6h-6v6H3.5z"/></svg>',
+    clients: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><path d="M16 4.8a3.5 3.5 0 0 1 0 6.4M18 14.8c2 .7 3.2 2.5 3.5 5.2"/></svg>',
+    plus: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+    money: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 21V3.5h5.5a4.25 4.25 0 0 1 0 8.5H5.5M5.5 16.5H14"/></svg>',
+    more: '<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>',
+    back: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg>',
+    search: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4-4"/></svg>',
+    check: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+    cross: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+    chevR: '<svg class="chev-r" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 5l7 7-7 7"/></svg>',
+    chevD: '<svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>',
+    excel: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6.5A1.5 1.5 0 0 0 5 4.5v15A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V8z"/><path d="M14 3v5h5M9 12l5 5M14 12l-5 5"/></svg>',
+    done: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+    logo: '<svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><path d="M3.5 8.5 11 4.5l11 4-2.5 11.5-10 2.5-6.5-7z" style="fill:var(--accent-weak);stroke:var(--accent)" stroke-width="1.6" stroke-linejoin="round"/><g style="fill:var(--accent)"><circle cx="3.5" cy="8.5" r="1.8"/><circle cx="11" cy="4.5" r="1.8"/><circle cx="22" cy="8.5" r="1.8"/><circle cx="19.5" cy="20" r="1.8"/><circle cx="9.5" cy="22.5" r="1.8"/><circle cx="3" cy="15.5" r="1.8"/></g></svg>'
+  };
+
+  /* ===================== Пояснения для заказчика ===================== */
+  var SCREENS = [
+    ['login', 'Вход', '6.1'],
+    ['home', 'Главная', '6.2'],
+    ['clients', 'Мои клиенты', '6.3'],
+    ['client/1', 'Карточка клиента', '6.4'],
+    ['transfer', 'Передать клиента', '6.5'],
+    ['money', 'Вознаграждение', '6.6'],
+    ['docs', 'Документы', '6.7'],
+    ['profile', 'Профиль и реквизиты', '6.7'],
+    ['requisites', 'Реквизиты: первый ввод', '6.7']
+  ];
+  var NOTES = {
+    login: ['Пароль не нужен: партнёр вводит e-mail и получает одноразовый код. Код действует 10 минут.',
+      'Ответ одинаковый, зарегистрирован адрес или нет, — так посторонний не узнает, кто ваш партнёр.',
+      'Вход по SMS — доработка.',
+      'При первом входе — условия программы и согласие на обработку персональных данных, две отдельные галочки. При новой редакции текста партнёр подтвердит её при следующем входе.',
+      'Политика обработки персональных данных открыта без входа — ссылка внизу экрана.',
+      'Тексты — заготовки: компания заменит их своими в настройках.',
+      'В прототипе подойдёт любой e-mail и любые 6 цифр.'],
+    home: ['Показатели, воронка по этапам, последние выплаты и лента событий — как в требованиях.',
+      'Уровень партнёра не показываем: уровни относятся к этапу развития.',
+      'В шапке — время последнего обновления данных из CRM.',
+      'Связь с менеджером по партнёрам — по телефону. На компьютере кнопка «Передать клиента» одна — в меню слева.'],
+    clients: ['Телефон в списке скрыт маской. В выгрузке Excel номера полностью.',
+      'На телефоне список — карточками, на компьютере — таблицей.',
+      '«Зависшие» — клиенты без движения дольше 30 дней. Порог настраивается.',
+      'Нажмите на клиента, чтобы открыть карточку.'],
+    client: ['Телефон, e-mail и имя — те, что передал сам партнёр. Номер показан полностью.',
+      'Вознаграждение — по каждому оплаченному счёту клиента: дата, база, ставка, сумма, статус. Как и откуда платил клиент, партнёр не видит.',
+      'Связь с менеджером — по телефону, кнопка «Позвонить». Переписка в кабинете — доработка.',
+      'Откройте разных клиентов: рассрочка (Иванов), задаток до договора (Соколов), прогноз (СтройЛайн), клиент из базы (Лебедева), сделка не состоялась (Волков).'],
+    transfer: ['Посёлок — из списка, номер участка партнёр пишет сам; свободен ли участок, проверяет менеджер. Выбор участка из каталога — доработка, экраны переделывать не придётся.',
+      'Направление (ИЖС или ПРОМ) партнёр не выбирает — кабинет определит его по посёлку.',
+      'Поля зависят от способа: для «На оформление» нужен участок, для «На подбор» — бюджет и площадь.',
+      'Если клиент уже есть в базе или закреплён за другим партнёром, ответ одинаковый и без чужих данных. Попробуйте телефон, который заканчивается на 00.'],
+    money: ['У каждого начисления — формула: ставка × сумма оплаченного счёта. Начисление появляется, когда счёт оплачен полностью.',
+      'С задатка за бронь — после подписания договора; до этого статус «Ждёт договора».',
+      'История по месяцам: начислено, к выплате, выплачено; бонусы — отдельной строкой; акт к выплате прикладывает бухгалтерия.',
+      'Ставки и суммы в прототипе условные.'],
+    docs: ['Личные документы видит только этот партнёр (договор, акты к выплатам), общие — все партнёры (условия, презентации посёлков, прайсы).',
+      'Загружает менеджер по партнёрам, акты к выплатам — бухгалтерия. Новости — на этапе развития.',
+      'Файлы хранятся закрыто: скачать можно только из кабинета после входа, по прямой ссылке они не откроются.',
+      'Загрузка документов самим партнёром (подписанный договор, чеки самозанятого) — доработка.'],
+    profile: ['Реквизиты видят только менеджер по партнёрам и бухгалтерия.',
+      'Изменить реквизиты — заявкой: менеджер по партнёрам проверит и применит, каждое изменение записывается в журнал.',
+      'Набор полей зависит от формы работы; компания может добавить свои поля. Паспорт и СНИЛС не собираем; расширенный набор — доработка.',
+      'Как реквизиты вводит новый партнёр — экран «Реквизиты: первый ввод».'],
+    requisites: ['Первый раз реквизиты вводит сам партнёр — сразу, без заявки.',
+      'Двойная проверка: экран «Проверьте реквизиты» и галочка «Данные верные». Изменить потом — только заявкой менеджеру.',
+      'Кабинет проверяет ИНН по контрольным цифрам и сверяет счёт с БИК — опечатка не пройдёт.',
+      'Пока реквизитов нет, начисления копятся, но в выплату не попадают; на главной и в «Вознаграждении» — напоминание.',
+      'После сохранения партнёру приходит письмо «Реквизиты сохранены» (можно выключить).',
+      'Здесь показан новый партнёр. В прототипе есть кнопка «Заполнить примером».'],
+    more: ['Уведомления, устройства и сеансы в прототип не входят — это экраны кабинета, их покажем позже.']
+  };
+
+  /* Юридические тексты — заготовки (З2): в модуле это настройки, компания заменит их своими */
+  var LEGAL = {
+    consent: 'Я даю [Наименование компании] (ИНН [ИНН], адрес: [адрес]) согласие на обработку моих персональных данных.\n\n' +
+      'Цели: участие в партнёрской программе, доступ к личному кабинету, учёт переданных клиентов, расчёт и выплата вознаграждения, связь со мной.\n\n' +
+      'Данные: ФИО, телефон, e-mail, город, форма работы, реквизиты для выплат, сведения о входах в кабинет (дата, время, IP-адрес, устройство).\n\n' +
+      'Действия: сбор, запись, систематизация, накопление, хранение, уточнение, извлечение, использование, передача [банку / бухгалтерии] для выплат, блокирование, удаление, уничтожение — с использованием средств автоматизации и без них. Данные хранятся в России.\n\n' +
+      'Срок: на время действия договора с партнёром и [N лет] после или до отзыва. Отозвать согласие можно заявлением на [e-mail].\n\n' +
+      'Текст-заготовка: компания заменит его своим.',
+    terms: '1. Клиент закрепляется за партнёром, который передал его первым, на [6 / 12] месяцев.\n' +
+      '2. Вознаграждение — процент от суммы каждого полностью оплаченного счёта клиента; с задатка за бронь — после подписания договора. Ставки — в разделе «Вознаграждение → Условия». Ставка закрепляется за сделкой при первой оплате.\n' +
+      '3. Вознаграждение не начисляется, если сделка не состоялась или срок закрепления истёк до первой оплаты.\n' +
+      '4. Выплаты — [раз в месяц, 15-го числа] по вашим реквизитам. Если оплата клиента возвращена, менеджер корректирует начисление — в том числе удержанием из следующей выплаты, если вознаграждение уже выплачено.\n' +
+      '5. Компания вправе менять ставки; уже закреплённые за сделками ставки не меняются.\n\n' +
+      'Текст-заготовка: компания заменит его своим.',
+    policy: '[Наименование компании] обрабатывает персональные данные партнёров, их клиентов и пользователей кабинета для работы партнёрской программы, расчёта и выплаты вознаграждения и связи.\n\n' +
+      'Данные хранятся в России. Каждый партнёр видит в кабинете только своих клиентов. Доступ к данным — только у работников компании, которым он нужен по работе.\n\n' +
+      'Вы можете получить сведения о своих данных, потребовать их уточнить или удалить, отозвать согласие — заявлением на [e-mail].\n\n' +
+      'Полный текст политики — заготовка: компания заменит его своим.'
+  };
+  function legalItem(id, label, text) {
+    return '<div class="legal-item"><label class="check"><input type="checkbox" id="' + id + '"><span>' + label + ' <span class="req">*</span></span></label>' +
+      '<details class="legal-d"><summary>Прочитать текст</summary><div class="legal">' + esc(text) + '</div></details></div>';
+  }
+  function policyLink() {
+    return '<details class="legal-d"><summary>Политика обработки персональных данных</summary><div class="legal">' + esc(LEGAL.policy) + '</div></details>';
+  }
+
+  /* ===================== Экраны ===================== */
+  function viewLogin() {
+    var L = S.login;
+    if (L.step === 'accept') {
+      return '<div class="stack login">' +
+        '<div class="login-mark">' + I.logo + '<h2>Условия и согласие</h2><div class="sub">Первый вход: примите условия партнёрской программы и дайте согласие на обработку персональных данных. Это два отдельных документа.</div></div>' +
+        '<form class="stack" id="acceptForm" novalidate>' +
+          legalItem('acTerms', 'Принимаю условия партнёрской программы', LEGAL.terms) +
+          legalItem('acConsent', 'Даю согласие на обработку персональных данных', LEGAL.consent) +
+          '<div class="err" id="acceptErr" hidden>Отметьте оба пункта, чтобы продолжить</div>' +
+          '<button class="btn primary block" type="submit">Продолжить</button>' +
+        '</form>' +
+        policyLink() +
+      '</div>';
+    }
+    if (L.step === 'email') {
+      return '<div class="stack login">' +
+        '<div class="login-mark">' + I.logo + '<h2>Кабинет партнёра</h2><div class="sub">Клиенты, этапы сделок и ваше вознаграждение — в одном месте.</div></div>' +
+        '<form class="stack" id="loginForm" novalidate>' +
+          '<div class="field"><label for="loginEmail">E-mail</label>' +
+          '<input class="input" id="loginEmail" type="email" autocomplete="email" placeholder="name@example.ru" value="' + esc(L.email || PARTNER.email) + '"></div>' +
+          '<div class="err" id="loginErr" hidden>Введите e-mail, например name@example.ru</div>' +
+          '<button class="btn primary block" type="submit">Получить код</button>' +
+        '</form>' +
+        '<div class="sub">Нет доступа? <button class="link-btn" type="button" data-toast="Анкета «Стать партнёром» в прототип не входит: после одобрения менеджер пришлёт приглашение.">Стать партнёром</button></div>' +
+        policyLink() +
+      '</div>';
+    }
+    return '<div class="stack login">' +
+      '<div class="login-mark">' + I.logo + '<h2>Введите код</h2>' +
+      '<div class="sub">Если адрес <b>' + esc(L.email) + '</b> зарегистрирован, мы отправили на него код. Код действует 10 минут.</div></div>' +
+      '<form class="stack" id="codeForm" novalidate>' +
+        '<div class="field"><label for="loginCode">Код из письма</label>' +
+        '<input class="input code-input" id="loginCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••"></div>' +
+        '<div class="err" id="codeErr" hidden>Код — 6 цифр из письма</div>' +
+        '<button class="btn primary block" type="submit">Войти</button>' +
+      '</form>' +
+      '<div class="row between"><button class="link-btn" type="button" data-action="login-back">Другой e-mail</button>' +
+      '<span class="sub" id="resend">Отправить ещё раз через 0:59</span></div>' +
+    '</div>';
+  }
+
+  function managerCard(m) {
+    return '<div class="card manager"><div class="avatar">' + initials(m.name) + '</div>' +
+      '<div class="who"><div>' + esc(m.name) + '</div><div class="sub">' + esc(m.role) + '</div><div class="phone num">' + esc(m.phone) + '</div></div>' +
+      '<a class="btn small" href="tel:' + digits(m.phone) + '">Позвонить</a></div>';
+  }
+
+  function kpi(label, value, note, up) {
+    return '<div class="kpi"><span class="k-label">' + label + '</span><span class="k-value">' + value + '</span><span class="k-note' + (up ? ' up' : '') + '">' + note + '</span></div>';
+  }
+
+  function viewHome() {
+    var active = clients.filter(function (c) { return c.stage <= 8; });
+    var growth = clients.filter(function (c) { return c.passed >= '2026-10-01'; }).length;
+    var inWork = clients.filter(function (c) { return c.stage <= 8 && c.contract; });
+    var inWorkSum = inWork.reduce(function (s, c) { return s + c.contract; }, 0);
+    var counts = [], sums = [], max = 1;
+    for (var i = 1; i <= 10; i++) {
+      var st = clients.filter(function (c) { return c.stage === i; });
+      counts[i] = st.length;
+      sums[i] = st.reduce(function (s, c) { return s + (c.contract || 0); }, 0);
+      if (counts[i] > max) max = counts[i];
+    }
+    var funnel = '';
+    for (var j = 1; j <= 10; j++) {
+      funnel += '<div class="f-row' + (counts[j] ? '' : ' zero') + (j === 10 ? ' lost' : '') + '">' +
+        '<span class="f-name">' + j + '. ' + STAGES[j] + '</span>' +
+        '<span class="f-val">' + (counts[j] ? counts[j] + (sums[j] ? ' · ' + mln(sums[j]) : '') : '—') + '</span>' +
+        '<span class="f-bar"><i style="width:' + (counts[j] / max * 100) + '%"></i></span></div>';
+    }
+    var feed = [
+      ['2026-10-16', 'Петрова А. В. — назначен показ'],
+      ['2026-10-14', 'Лебедева Е. О. — участок забронирован'],
+      ['2026-10-12', 'Новиков А. П. — сделка закрыта, начислено 59 000 ₽'],
+      ['2026-10-10', 'Соколов Д. А. — оплачен задаток, начисление после договора'],
+      ['2026-10-05', 'Иванов С. П. — оплачен счёт, начислено 12 000 ₽']
+    ];
+    // на компьютере «Передать клиента» — только в меню слева: основная кнопка на экране одна (правило кита)
+    return reqBanner() +
+      '<div class="cols c-3-2">' +
+        '<div class="col"><div class="hello"><h2 class="screen-h">Добрый день, ' + PARTNER.first + '</h2><span class="sub">Сегодня ' + dWords(TODAY) + '</span></div>' +
+          '<a class="btn primary block cta only-narrow" href="#transfer">' + I.plus + 'Передать клиента</a></div>' +
+        '<div class="col">' + managerCard(PM) + '</div>' +
+      '</div>' +
+      '<div class="kpis">' +
+        kpi('Активные клиенты', active.length, '+' + growth + ' за октябрь', true) +
+        kpi('Сделки в работе', inWork.length, 'на ' + mln(inWorkSum)) +
+        kpi('Начислено в октябре', rub(71000), 'в сентябре — ' + rub(12000), true) +
+        kpi('К выплате', rub(12000), 'выплата 15 ноября') +
+      '</div>' +
+      '<div class="cols c-3-2">' +
+        '<div class="col"><section class="card"><h3 class="card-h">Клиенты по этапам</h3><div class="funnel">' + funnel + '</div></section></div>' +
+        '<div class="col"><section class="card"><h3 class="card-h">Последние выплаты</h3><div class="list">' +
+            '<div class="li"><span>Выплата за сентябрь и бонус</span><span class="num"><b>' + rub(17000) + '</b> <span class="when">15.10</span></span></div>' +
+            '<div class="li"><span>Выплата за август</span><span class="num"><b>' + rub(37000) + '</b> <span class="when">15.09</span></span></div>' +
+          '</div><div style="margin-top:10px"><a href="#money">Все начисления и выплаты</a></div></section>' +
+          '<section class="card"><h3 class="card-h">События</h3><div class="list">' +
+            feed.map(function (f) { return '<div class="li"><span>' + esc(f[1]) + '</span><span class="when">' + dShort(f[0]) + '</span></div>'; }).join('') +
+          '</div></section></div>' +
+      '</div>';
+  }
+
+  function matchFilter(c, f) {
+    if (f === 'work') return c.stage <= 8;
+    if (f === 'won') return c.stage === 9;
+    if (f === 'lost') return c.stage === 10;
+    if (f === 'stall') return stalled(c);
+    return true;
+  }
+  function filteredClients() {
+    var q = S.search.trim().toLowerCase(), qd = digits(q);
+    return clients.filter(function (c) {
+      if (!matchFilter(c, S.filter)) return false;
+      if (S.village && c.village !== S.village) return false;
+      if (S.period === 'month' && c.passed < '2026-10-01') return false;
+      if (S.period === '3m' && c.passed < '2026-07-19') return false;
+      if (q) {
+        var byName = c.name.toLowerCase().indexOf(q) !== -1;
+        var byPhone = qd.length >= 3 && digits(c.phone).indexOf(qd) !== -1;
+        if (!byName && !byPhone) return false;
+      }
+      return true;
+    }).sort(function (a, b) { return a.changed < b.changed ? 1 : -1; });
+  }
+  function viewClients() {
+    var chips = [['all', 'Все'], ['work', 'В работе'], ['won', 'Успешно'], ['lost', 'Не состоялись'], ['stall', 'Зависшие']];
+    var vOpts = '<option value="">Все посёлки</option>' + VILLAGES.map(function (v) {
+      return '<option' + (S.village === v.name ? ' selected' : '') + '>' + esc(v.name) + '</option>';
+    }).join('');
+    return '<div class="row between"><h2 class="screen-h">Мои клиенты</h2>' +
+        '<button class="btn small" type="button" data-action="excel">' + I.excel + 'Excel</button></div>' +
+      '<div class="filters">' +
+        '<div class="search">' + I.search + '<input class="input" id="q" type="search" placeholder="Имя или телефон" value="' + esc(S.search) + '" aria-label="Поиск по имени и телефону"></div>' +
+        '<div class="chips" role="group" aria-label="Фильтр по состоянию">' + chips.map(function (ch) {
+          var n = clients.filter(function (c) { return matchFilter(c, ch[0]); }).length;
+          return '<button class="chip" type="button" data-filter="' + ch[0] + '" aria-pressed="' + (S.filter === ch[0]) + '">' + ch[1] + '<span class="cnt">' + n + '</span></button>';
+        }).join('') + '</div>' +
+        '<div class="two">' +
+          '<select class="input" id="period" aria-label="Период передачи">' +
+            '<option value="all"' + (S.period === 'all' ? ' selected' : '') + '>За всё время</option>' +
+            '<option value="month"' + (S.period === 'month' ? ' selected' : '') + '>Переданы в октябре</option>' +
+            '<option value="3m"' + (S.period === '3m' ? ' selected' : '') + '>За 3 месяца</option>' +
+          '</select>' +
+          '<select class="input" id="village" aria-label="Посёлок">' + vOpts + '</select>' +
+        '</div>' +
+      '</div>' +
+      '<div id="clientList">' + clientListHTML() + '</div>';
+  }
+  function moneyCell(c) {
+    var r = reward(c);
+    if (!r) return '<span class="sub">—</span>';
+    return '<div class="stack-sm" style="align-items:flex-end">' + (r.sum != null ? '<b class="num">' + (r.status === 'forecast' ? '≈ ' : '') + rub(r.sum) + '</b>' : '') + pill(r.status) + '</div>';
+  }
+  function clientListHTML() {
+    var list = filteredClients();
+    if (!list.length) return '<div class="empty">Клиентов с такими условиями нет.<br><button class="link-btn" type="button" data-action="reset">Сбросить фильтры</button></div>';
+    var cards = list.map(function (c) {
+      var r = reward(c);
+      var money = '';
+      if (c.contract || r) {
+        money = '<div class="c-money"><span>' + (c.contract ? 'Договор <b>' + rub(c.contract) + '</b>' : '') + '</span>' +
+          (r ? '<span class="row">' + (r.sum != null ? '<b>' + (r.status === 'forecast' ? '≈ ' : '') + rub(r.sum) + '</b>' : '') + pill(r.status) + '</span>' : '') + '</div>';
+      }
+      return '<a class="client" href="#client/' + c.id + '">' +
+        '<div class="c-top"><span class="c-name">' + esc(c.name) + '</span>' + stagePill(c) + '</div>' +
+        '<div class="c-meta num">' + mask(c.phone) + ' · ' + METHODS[c.method] + ' · передан ' + dShort(c.passed) + '</div>' +
+        '<div class="c-meta">' + esc(plotText(c)) + ' · изменено ' + dShort(c.changed) + '</div>' +
+        (stalled(c) ? '<div class="stall">Без движения ' + days(c.changed, TODAY) + ' дн.</div>' : '') +
+        money + '</a>';
+    }).join('');
+    var rows = list.map(function (c) {
+      return '<tr data-href="#client/' + c.id + '">' +
+        '<td><a href="#client/' + c.id + '">' + esc(c.name) + '</a><div class="sub num">' + mask(c.phone) + '</div></td>' +
+        '<td class="nw">' + dFull(c.passed) + '<div class="sub">' + METHODS[c.method] + '</div></td>' +
+        '<td>' + esc(c.village) + '<div class="sub">' + (c.plot ? 'участок ' + esc(c.plot) : 'участок не выбран') + '</div></td>' +
+        '<td>' + stagePill(c) + '<div class="sub">изм. ' + dShort(c.changed) + '</div>' + (stalled(c) ? '<div class="stall">без движения ' + days(c.changed, TODAY) + ' дн.</div>' : '') + '</td>' +
+        '<td class="r">' + (c.contract ? rub(c.contract) : '<span class="sub">—</span>') + '</td>' +
+        '<td class="r">' + moneyCell(c) + '</td></tr>';
+    }).join('');
+    return '<div class="stack only-narrow">' + cards + '</div>' +
+      '<div class="tbl-wrap only-wide"><table class="tbl"><thead><tr><th>Клиент</th><th>Передан</th><th>Посёлок и участок</th><th>Этап</th><th class="r">Договор</th><th class="r">Вознаграждение</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+  }
+
+  function viewClient(id) {
+    var c = byId(id);
+    if (!c) return '<div class="empty">Клиент не найден. <a href="#clients">К списку</a></div>';
+    var reached = {};
+    c.path.forEach(function (p) { reached[p[0]] = p[1]; });
+    var cur = c.path[c.path.length - 1][0];
+    var shown = c.path.map(function (p) { return p[0]; });
+    if (cur !== 10 && cur !== 9) {
+      for (var s = cur + 1; s <= 9; s++) { if (s === 2 && c.method !== 'self') continue; shown.push(s); }
+    }
+    var steps = shown.map(function (s) {
+      var cls = s === 10 ? 'lost' : s === cur ? (cur === 9 ? 'done' : 'current') : reached[s] ? 'done' : '';
+      var mark = cls === 'done' ? I.check : cls === 'lost' ? I.cross : '';
+      return '<li class="step ' + cls + '"><span class="mark">' + mark + '</span><span class="s-name">' + STAGES[s] + '</span><span class="s-date">' + (reached[s] ? dShort(reached[s]) : '') + '</span></li>';
+    }).join('');
+
+    var money = '';
+    if (c.notAccrued) {
+      money = c.fromBase
+        ? '<div class="banner warn"><strong>Клиент из базы</strong><span>' + esc(c.notAccrued) + '</span></div>' +
+          '<div class="sub">Считаете, что это ошибка? Позвоните менеджеру по партнёрам — он проверит и может вернуть ставку.</div>'
+        : '<div class="banner bad"><strong>Вознаграждение не начислено</strong><span>' + esc(c.notAccrued) + '</span></div>';
+    } else if (c.accruals && c.accruals.length) {
+      var total = 0;
+      var rows = c.accruals.map(function (a) {
+        var sum = a.base * c.rate / 100; total += sum;
+        return '<div class="acc"><span class="a-date">' + (a.deposit ? 'Задаток ' : 'Счёт оплачен ') + dFull(a.date) + '</span>' +
+          '<span class="a-formula">' + pct(c.rate) + ' от ' + rub(a.base) + ' = <b>' + rub(sum) + '</b></span>' +
+          '<span class="a-side">' + pill(a.status) + '<span class="a-pay">' + payText(a) + '</span></span></div>';
+      }).join('');
+      var left = c.contract - c.paid;
+      var waits = c.accruals.some(function (a) { return a.status === 'wait'; });
+      money = moneyHead(c) + '<div>' + rows + '</div>' +
+        (waits ? '<div class="sub">С задатка вознаграждение начисляется, когда подписан договор. Если бронь сорвётся, с задатка не начисляется.</div>' : '') +
+        (left > 0 ? '<div class="row between" style="font-size:14px"><span>Ожидается после следующих оплат</span><span class="row"><b class="num">≈ ' + rub(left * c.rate / 100) + '</b>' + pill('forecast') + '</span></div>' : '') +
+        '<div class="sub">Всего по сделке: ' + rub(total) + (left > 0 ? ' из ≈ ' + rub(c.contract * c.rate / 100) : '') + '. Ставка ' + pct(c.rate) + ' закреплена при первой оплате.</div>';
+    } else if (c.contract) {
+      money = moneyHead(c) +
+        '<div class="row between"><span>Ожидаемое вознаграждение</span><span class="row"><b class="num">≈ ' + rub(c.contract * c.rate / 100) + '</b>' + pill('forecast') + '</span></div>' +
+        '<div class="sub">Начисление появится после первой оплаты клиента.</div>';
+    } else if (c.dup) {
+      money = '<div class="banner warn"><strong>Отмечен как «клиент из базы»</strong><span>Ставка 0 % — клиент уже был в базе компании. Если это ошибка — позвоните менеджеру по партнёрам: он проверит и может вернуть ставку.</span></div>';
+    } else {
+      money = '<div class="sub">Вознаграждение появится, когда будут известны участок и цена.</div>';
+    }
+
+    var plotRows = '<dt>Посёлок</dt><dd>' + esc(c.village) + '</dd>' +
+      '<dt>Участок</dt><dd>' + (c.plot ? '№ ' + esc(c.plot) : 'не выбран') + '</dd>' +
+      (c.area ? '<dt>Площадь</dt><dd>' + c.area + ' сот.</dd>' : '') +
+      (c.budget ? '<dt>Бюджет</dt><dd>' + esc(c.budget) + '</dd>' : '') +
+      (c.areaWish ? '<dt>Нужная площадь</dt><dd>' + esc(c.areaWish) + '</dd>' : '') +
+      '<dt>Направление</dt><dd>' + (c.dir || 'определится по посёлку') + '</dd>' +
+      '<dt>Способ</dt><dd>' + METHODS[c.method] + '</dd>';
+
+    // менеджер по сделке; пока его нет (ведёт партнёр, только что передан) — менеджер по партнёрам
+    var mgr = MANAGERS[c.manager] ? { name: c.manager, role: 'Менеджер по сделке', phone: MANAGERS[c.manager] } : PM;
+    var mgrNote = c.method === 'self' && !c.manager ? 'Клиента ведёте вы. Менеджер по сделке появится, когда передадите клиента менеджеру.'
+      : c.manager === 'будет назначен' ? 'Менеджер по сделке будет назначен в ближайшее время.' : '';
+
+    return '<div class="c-head"><h2 class="screen-h">' + esc(c.name) + '</h2>' +
+        (c.contact ? '<span class="sub">Контактное лицо: ' + esc(c.contact) + '</span>' : '') +
+        '<div class="contact-line"><a href="tel:' + digits(c.phone) + '">' + esc(c.phone) + '</a>' + (c.email ? '<span class="sub">' + esc(c.email) + '</span>' : '') + '</div>' +
+        '<div class="row" style="flex-wrap:wrap">' + stagePill(c) + '<span class="sub">Закреплён за вами до ' + dFull(c.fixedUntil) + '</span></div></div>' +
+      '<div class="cols">' +
+        '<div class="col">' +
+          '<section class="card" style="order:1"><h3 class="card-h">Этапы</h3><ol class="steps">' + steps + '</ol></section>' +
+          '<section class="card" style="order:4"><h3 class="card-h">История</h3><div class="timeline">' +
+            c.history.map(function (h) { return '<div><time>' + dShort(h[0]) + '</time><span>' + esc(h[1]) + '</span></div>'; }).join('') +
+          '</div></section>' +
+        '</div>' +
+        '<div class="col">' +
+          '<section class="card stack" style="order:2"><h3 class="card-h" style="margin:0">Вознаграждение</h3>' + money + '</section>' +
+          '<section class="card" style="order:3"><h3 class="card-h">Участок и сделка</h3><dl class="kv">' + plotRows + '</dl></section>' +
+          '<section class="stack" style="order:5">' + managerCard(mgr) + (mgrNote ? '<span class="sub">' + mgrNote + '</span>' : '') + '</section>' +
+        '</div>' +
+      '</div>';
+  }
+  function moneyHead(c) {
+    var p = c.contract ? Math.round(c.paid / c.contract * 100) : 0;
+    return '<dl class="kv"><dt>Сумма договора</dt><dd class="num">' + rub(c.contract) + '</dd>' +
+      '<dt>Оплачено клиентом</dt><dd class="num">' + rub(c.paid) + ' · ' + p + ' %</dd></dl>' +
+      '<div class="paid-bar" role="img" aria-label="Оплачено ' + p + ' процентов"><i style="width:' + p + '%"></i></div>';
+  }
+
+  function viewTransfer() {
+    var vOpts = '<option value="">Выберите посёлок</option>' +
+      ['ИЖС', 'ПРОМ'].map(function (d) {
+        return '<optgroup label="' + d + '">' + VILLAGES.filter(function (v) { return v.dir === d; }).map(function (v) { return '<option>' + esc(v.name) + '</option>'; }).join('') + '</optgroup>';
+      }).join('');
+    return '<h2 class="screen-h">Передать клиента</h2>' +
+      '<form class="stack narrow-form" id="tf" novalidate>' +
+        '<div class="cols">' +
+          '<div class="col">' +
+            '<div class="field"><label for="tfName">ФИО или название компании <span class="req">*</span></label><input class="input" id="tfName" autocomplete="off"><span class="err" id="eName" hidden>Укажите, как зовут клиента</span></div>' +
+            '<div class="field"><label for="tfPhone">Телефон <span class="req">*</span></label><input class="input num" id="tfPhone" inputmode="tel" placeholder="+7 900 000-00-00"><span class="err" id="ePhone" hidden>Нужен номер из 11 цифр, например +7 900 123-45-67</span></div>' +
+            '<div class="banner warn" id="dup" hidden><strong>Клиент уже есть в базе компании</strong><span>Передать можно, но за клиента из базы вознаграждение не начисляется. Если это ошибка — позвоните менеджеру по партнёрам: он проверит и может вернуть ставку.</span></div>' +
+            '<div class="field"><label for="tfEmail">E-mail</label><input class="input" id="tfEmail" type="email" placeholder="client@example.ru"></div>' +
+            '<div class="field" style="order:1"><label for="tfComment">Комментарий</label><textarea class="input" id="tfComment" placeholder="Когда удобно звонить, что важно клиенту"></textarea></div>' +
+          '</div>' +
+          '<div class="col">' +
+            '<div class="field"><span class="label">Способ передачи <span class="req">*</span></span><div class="method" role="radiogroup" aria-label="Способ передачи">' +
+              methodOpt('deal', 'На оформление', 'Клиент выбрал участок, нужно оформить сделку. Ставка ' + pct(RATES.deal), true) +
+              methodOpt('pick', 'На подбор', 'Менеджер подберёт участок под бюджет и площадь. Ставка ' + pct(RATES.pick)) +
+              methodOpt('self', 'Веду сам', 'Вы ведёте клиента сами и передаёте менеджеру, когда нужно. Ставка ' + pct(RATES.self)) +
+            '</div></div>' +
+            '<div class="field"><label for="tfVillage">Посёлок</label><select class="input" id="tfVillage">' + vOpts + '</select><span class="hint">Направление — ИЖС или ПРОМ — определится по посёлку.</span></div>' +
+            '<div class="field"><label for="tfPlot">Номер участка <span class="req" id="plotReq">*</span></label><input class="input" id="tfPlot" placeholder="Например, 45"><span class="hint">Если знаете. Свободен ли участок, проверит менеджер.</span><span class="err" id="ePlot" hidden>Для оформления укажите номер участка</span></div>' +
+            '<div class="two" id="pickFields" hidden>' +
+              '<div class="field"><label for="tfBudget">Бюджет</label><input class="input" id="tfBudget" placeholder="до 2 млн ₽"></div>' +
+              '<div class="field"><label for="tfArea">Площадь</label><input class="input" id="tfArea" placeholder="8–10 сот."></div>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+        '<label class="check"><input type="checkbox" id="tfConsent"><span>Подтверждаю, что клиент согласен на передачу его имени, телефона и e-mail компании для связи по вопросу покупки участка <span class="req">*</span></span></label>' +
+        '<span class="err" id="eConsent" hidden>Без согласия клиента передать контакты нельзя</span>' +
+        '<button class="btn primary block cta" type="submit">Передать клиента</button>' +
+        '<span class="hint">Клиент закрепится за вами на 6 месяцев.</span>' +
+      '</form>';
+  }
+  function methodOpt(v, t, d, checked) {
+    return '<label><input type="radio" name="method" value="' + v + '"' + (checked ? ' checked' : '') + '><span><strong>' + t + '</strong><small>' + d + '</small></span></label>';
+  }
+  function viewTransferDone(id) {
+    var c = byId(id);
+    if (!c) return viewTransfer();
+    return '<div class="stack w-640" style="gap:18px">' +
+      '<div class="done-mark">' + I.done + '</div>' +
+      '<h2 class="screen-h">Клиент передан</h2>' +
+      '<div class="card"><dl class="kv">' +
+        '<dt>Клиент</dt><dd>' + esc(c.name) + '</dd>' +
+        '<dt>Способ</dt><dd>' + METHODS[c.method] + '</dd>' +
+        '<dt>Этап</dt><dd>' + STAGES[c.stage] + '</dd>' +
+        '<dt>Закреплён до</dt><dd>' + dFull(c.fixedUntil) + '</dd></dl></div>' +
+      (c.dup ? '<div class="banner warn"><strong>Отмечен как «клиент из базы»</strong><span>Ставка 0 % — клиент уже был в базе компании. Если это ошибка — позвоните менеджеру по партнёрам: он проверит и может вернуть ставку.</span></div>' : '') +
+      '<ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;color:var(--ink-2)">' +
+        (c.method === 'self' ? '<li>Клиент в статусе «Ведёт партнёр». Когда будете готовы, передайте его менеджеру.</li>' : '<li>Менеджер получил уведомление и свяжется с клиентом.</li>') +
+        '<li>Этапы сделки будут видны в карточке клиента.</li>' +
+      '</ul>' +
+      '<div class="row" style="flex-wrap:wrap"><a class="btn primary" href="#client/' + c.id + '">Открыть карточку</a>' +
+      '<a class="btn" href="#transfer">Передать ещё одного</a></div>' +
+    '</div>';
+  }
+
+  function viewMoney() {
+    var tabs = [['acc', 'Начисления'], ['pay', 'Выплаты'], ['stat', 'Статистика'], ['terms', 'Условия']];
+    var body = '';
+    if (S.moneyTab === 'acc') body = moneyAcc();
+    if (S.moneyTab === 'pay') body = moneyPay();
+    if (S.moneyTab === 'stat') body = moneyStat();
+    if (S.moneyTab === 'terms') body = moneyTerms();
+    var expected = forecastList().reduce(function (s, c) { return s + (c.contract - (c.paid || 0)) * c.rate / 100; }, 0);
+    return '<h2 class="screen-h">Вознаграждение</h2>' + reqBanner() +
+      '<div class="kpis">' +
+        kpi('К выплате', rub(12000), 'выплата 15 ноября') +
+        kpi('Ждёт подтверждения', rub(59000), 'начислено в октябре') +
+        kpi('Ожидается', '≈ ' + rub(expected), 'после оплат клиентов') +
+        kpi('Выплачено в 2026', rub(54000), 'две выплаты') +
+      '</div>' +
+      '<div class="tabs" role="tablist">' + tabs.map(function (t) {
+        return '<button type="button" role="tab" data-tab="' + t[0] + '" aria-selected="' + (S.moneyTab === t[0]) + '">' + t[1] + '</button>';
+      }).join('') + '</div>' + body;
+  }
+  function moneyAcc() {
+    var rows = [];
+    clients.forEach(function (c) {
+      (c.accruals || []).forEach(function (a) { rows.push({ c: c, a: a }); });
+    });
+    rows.sort(function (x, y) { return x.a.date < y.a.date ? 1 : -1; });
+    var forecast = forecastList();
+    var cardRows = rows.map(function (r) {
+      var sum = r.a.base * r.c.rate / 100;
+      return '<div class="acc"><span class="a-date"><a href="#client/' + r.c.id + '">' + esc(short(r.c.name)) + '</a> · ' + accLabel(r.a) + '</span>' +
+        '<span class="a-formula">' + pct(r.c.rate) + ' от ' + rub(r.a.base) + ' = <b>' + rub(sum) + '</b></span>' +
+        '<span class="a-side">' + pill(r.a.status) + '<span class="a-pay">' + payText(r.a) + '</span></span></div>';
+    }).join('');
+    var tblRows = rows.map(function (r) {
+      var sum = r.a.base * r.c.rate / 100;
+      return '<tr data-href="#client/' + r.c.id + '"><td><a href="#client/' + r.c.id + '">' + esc(r.c.name) + '</a></td>' +
+        '<td class="nw">' + dFull(r.a.date) + (r.a.deposit ? '<div class="sub">задаток</div>' : '') + '</td>' +
+        '<td class="nw num">' + pct(r.c.rate) + ' от ' + rub(r.a.base) + '</td>' +
+        '<td class="r"><b>' + rub(sum) + '</b></td>' +
+        '<td>' + pill(r.a.status) + '</td>' +
+        '<td class="nw sub">' + payText(r.a) + '</td></tr>';
+    }).join('');
+    return '<section class="stack"><h3 class="card-h" style="margin:0">По оплаченным счетам</h3>' +
+        '<div class="card only-narrow">' + cardRows + '</div>' +
+        '<div class="tbl-wrap only-wide"><table class="tbl"><thead><tr><th>Клиент</th><th>Оплаченный счёт</th><th>Расчёт</th><th class="r">Начислено</th><th>Статус</th><th>Выплата</th></tr></thead><tbody>' + tblRows + '</tbody></table></div>' +
+      '</section>' +
+      '<div class="cols">' +
+        '<div class="col"><section class="card"><h3 class="card-h">Ожидается</h3>' + forecast.map(function (c) {
+          var left = c.contract - (c.paid || 0);
+          return '<div class="acc"><span class="a-date"><a href="#client/' + c.id + '">' + esc(short(c.name)) + '</a> · ' + STAGES[c.stage].toLowerCase() + '</span>' +
+            '<span class="a-formula">' + pct(c.rate) + ' от ' + rub(left) + ' ≈ <b>' + rub(left * c.rate / 100) + '</b></span>' +
+            '<span class="a-side">' + pill('forecast') + '</span></div>';
+        }).join('') + '</section></div>' +
+        '<div class="col"><section class="card"><h3 class="card-h">Не начислено</h3>' + clients.filter(function (c) { return c.notAccrued; }).map(function (c) {
+          return '<div class="acc"><span class="a-date"><a href="#client/' + c.id + '">' + esc(short(c.name)) + '</a></span>' +
+            '<span class="a-formula">' + esc(c.notAccrued) + '</span><span class="a-side">' + pill('none') + '</span></div>';
+        }).join('') + '</section></div>' +
+      '</div>';
+  }
+  function moneyPay() {
+    return '<div class="stack w-860">' + months.map(function (m, i) {
+      var L = m.lines;
+      var acc = L.acc.map(function (a) {
+        return '<div class="m-line"><span>' + esc(a[0]) + '</span><span class="ml-sub">' + esc(a[1]) + ' · ' + ST[a[3]].t.toLowerCase() + '</span><span class="ml-sum">' + rub(a[2]) + '</span></div>';
+      }).join('');
+      var pay = '';
+      if (L.pay) {
+        pay = '<div class="m-sec">Выплачено ' + L.pay.date + ', ' + L.pay.method + '</div>' +
+          L.pay.items.map(function (p) { return '<div class="m-line"><span>' + esc(p[0]) + '</span><span class="ml-sub">' + esc(p[1]) + '</span><span class="ml-sum">' + rub(p[2]) + '</span></div>'; }).join('') +
+          L.pay.bonus.map(function (b) { return '<div class="m-line bonus"><span>' + esc(b[0]) + '</span><span class="ml-sub">' + esc(b[1]) + '</span><span class="ml-sum">+' + rub(b[2]) + '</span></div>'; }).join('') +
+          (L.pay.act ? '<div><button class="link-btn" type="button" data-toast="Акт к выплате приложила бухгалтерия. Он же — в «Документах». В прототипе файл не скачивается.">Акт к выплате · PDF</button></div>' : '');
+      }
+      return '<details class="month"' + (i === 0 ? ' open' : '') + '><summary>' +
+          '<span class="m-title">' + m.label + I.chevD + '</span>' +
+          '<span class="m-sums"><div>Начислено<b>' + rub(m.accrued) + '</b></div><div>К выплате<b>' + (m.topay ? rub(m.topay) : '—') + '</b></div><div>Выплачено<b>' + (m.paid ? rub(m.paid) : '—') + '</b></div></span>' +
+        '</summary><div class="m-body"><div class="m-sec">Начисления месяца</div>' + acc + pay + '</div></details>';
+    }).join('') +
+    '<div class="sub">В августе начислений и выплат не было.</div></div>';
+  }
+  function moneyStat() {
+    var deals = clients.filter(function (c) { return c.stage >= 7 && c.stage <= 9; }).length;
+    return '<div class="kpis">' +
+        kpi('Передано клиентов', clients.length, 'с июня 2026') +
+        kpi('Конверсия в сделку', Math.round(deals / clients.length * 100) + ' %', deals + ' договора из ' + clients.length) +
+        kpi('Средний срок до договора', '25 дней', 'от передачи') +
+        kpi('Выплачено всего', rub(54000), 'в 2026 году — ' + rub(54000)) +
+      '</div>' +
+      '<section class="card w-640"><h3 class="card-h">Выплачено по годам</h3><div class="list">' +
+        '<div class="li"><span>2026</span><b class="num">' + rub(54000) + '</b></div>' +
+      '</div></section>';
+  }
+  function moneyTerms() {
+    return '<div class="cols">' +
+      '<div class="col"><section class="card"><h3 class="card-h">Ваши ставки</h3><table class="rates"><tbody>' +
+        '<tr><td>На оформление<small>клиент выбрал участок</small></td><td>' + pct(RATES.deal) + '</td></tr>' +
+        '<tr><td>На подбор<small>менеджер подбирает участок</small></td><td>' + pct(RATES.pick) + '</td></tr>' +
+        '<tr><td>Ведёт сам<small>вы ведёте клиента до передачи менеджеру</small></td><td>' + pct(RATES.self) + '</td></tr>' +
+        '<tr><td>Клиент из базы<small>клиент уже был в базе компании</small></td><td>' + pct(RATES.base) + '</td></tr>' +
+      '</tbody></table></section></div>' +
+      '<div class="col"><section class="card stack"><h3 class="card-h" style="margin:0">Как считается</h3>' +
+        '<div>Вознаграждение = ставка × сумма каждого оплаченного счёта клиента. Начисление появляется, когда счёт оплачен полностью; рассрочка и полная оплата считаются одинаково.</div>' +
+        '<div>С задатка за бронь вознаграждение начисляется, когда подписан договор. Если бронь сорвалась — не начисляется.</div>' +
+        '<div>Ставка закрепляется за сделкой при первой оплате (обычно это задаток) и дальше не меняется.</div>' +
+        '<div>Клиент закрепляется за вами на 6 месяцев с даты передачи. За клиента, который уже был в базе компании, вознаграждение не начисляется.</div>' +
+        '<div class="sub">Ставки в прототипе условные.</div>' +
+      '</section></div></div>';
+  }
+
+  function viewMore() {
+    var items = [['docs', 'Документы', 'Договор, акты, условия программы, презентации посёлков'], ['profile', 'Профиль и реквизиты', 'Изменение реквизитов — через заявку менеджеру'],
+      ['', 'Уведомления', 'Какие письма получать'], ['', 'Устройства и сеансы', 'Где выполнен вход, завершить другие сеансы']];
+    return '<h2 class="screen-h">Ещё</h2>' + reqBanner() + '<section class="card more-list w-640" style="padding-block:0">' +
+      items.map(function (it) {
+        var inner = '<span class="stack-sm"><span>' + it[1] + '</span><span class="sub">' + esc(it[2]) + '</span></span>' + I.chevR;
+        return it[0] ? '<a href="#' + it[0] + '">' + inner + '</a>' : '<button type="button" data-toast="Экран «' + it[1] + '» в прототип не входит.">' + inner + '</button>';
+      }).join('') +
+      '<button type="button" data-action="logout"><span>Выйти</span>' + I.chevR + '</button>' +
+    '</section>';
+  }
+
+  function viewDocs() {
+    function list(rows) {
+      return rows.map(function (d) {
+        return '<div class="doc"><span class="d-ico">' + d[1] + '</span>' +
+          '<span class="stack-sm"><span class="d-name">' + esc(d[0]) + '</span><span class="sub">' + d[1] + ' · ' + d[2] + ' · добавлен ' + dFull(d[3]) + '</span></span>' +
+          '<button class="btn small" type="button" data-toast="Файл скачивается только через кабинет, после входа. В прототипе файл не скачивается.">Скачать</button></div>';
+      }).join('');
+    }
+    return '<h2 class="screen-h">Документы</h2>' +
+      '<div class="cols">' +
+        '<div class="col"><section class="card"><h3 class="card-h">Личные</h3><div class="sub" style="margin:-6px 0 10px">Видите только вы</div>' + list(DOCS.personal) + '</section></div>' +
+        '<div class="col"><section class="card"><h3 class="card-h">Общие</h3><div class="sub" style="margin:-6px 0 10px">Для всех партнёров компании</div>' + list(DOCS.common) + '</section></div>' +
+      '</div>';
+  }
+
+  function viewProfile() {
+    var R = S.req, d = R.data;
+    var reqCard;
+    if (R.status === 'saved' && d) {
+      reqCard = '<dl class="kv">' +
+          '<dt>Форма работы</dt><dd>' + FORMS[d.form] + '</dd>' +
+          '<dt>Получатель</dt><dd>' + esc(d.name) + '</dd>' +
+          '<dt>ИНН</dt><dd class="num">' + esc(d.inn) + '</dd>' +
+          (d.form === 'ip' ? '<dt>ОГРНИП</dt><dd class="num">' + esc(d.ogrnip) + '</dd>' : '') +
+          (d.form === 'org' ? '<dt>ОГРН</dt><dd class="num">' + esc(d.ogrn) + '</dd><dt>КПП</dt><dd class="num">' + esc(d.kpp) + '</dd>' : '') +
+          '<dt>Банк</dt><dd>' + esc(BANKS[d.bik] || 'по БИК ' + d.bik) + '</dd>' +
+          '<dt>Счёт</dt><dd class="num">•••• ' + d.acc.slice(-4) + '</dd>' +
+        '</dl>' +
+        (R.request ? '<div class="banner warn"><strong>Заявка на смену реквизитов от ' + dFull(R.request) + '</strong><span>На проверке у менеджера по партнёрам. До применения выплаты идут по прежним реквизитам.</span></div>'
+          : '<a class="btn" href="#requisites/change">Изменить реквизиты</a>');
+    } else {
+      reqCard = '<div class="sub">Реквизиты не заполнены.</div><a class="btn primary" href="#requisites">Заполнить реквизиты</a>';
+    }
+    return '<h2 class="screen-h">Профиль и реквизиты</h2>' + reqBanner() +
+      '<div class="cols">' +
+        '<div class="col"><section class="card"><h3 class="card-h">Профиль</h3><dl class="kv">' +
+          '<dt>ФИО</dt><dd>' + PARTNER.full + '</dd>' +
+          '<dt>Телефон</dt><dd class="num">' + PARTNER.phone + '</dd>' +
+          '<dt>E-mail</dt><dd>' + PARTNER.email + '</dd>' +
+        '</dl></section></div>' +
+        '<div class="col"><section class="card stack"><h3 class="card-h" style="margin:0">Реквизиты для выплат</h3>' + reqCard + '</section></div>' +
+      '</div>';
+  }
+
+  function reqFields(form) {
+    var f = [['name', form === 'org' ? 'Название организации' : form === 'ip' ? 'ФИО предпринимателя' : 'ФИО полностью', ''],
+      ['inn', 'ИНН', form === 'org' ? '10 цифр' : '12 цифр']];
+    if (form === 'ip') f.push(['ogrnip', 'ОГРНИП', '15 цифр']);
+    if (form === 'org') f.push(['ogrn', 'ОГРН', '13 цифр'], ['kpp', 'КПП', '9 цифр']);
+    f.push(['bik', 'БИК банка', '9 цифр'], ['acc', 'Расчётный счёт', '20 цифр']);
+    return f;
+  }
+  function reqErrors(d) {
+    var e = {};
+    if (!d.name.trim()) e.name = 'Укажите получателя';
+    if (!innOk(d.inn) || d.inn.length !== (d.form === 'org' ? 10 : 12)) e.inn = 'ИНН с ошибкой — проверьте цифры';
+    if (d.form === 'ip' && d.ogrnip.length !== 15) e.ogrnip = 'ОГРНИП — 15 цифр';
+    if (d.form === 'org' && d.ogrn.length !== 13) e.ogrn = 'ОГРН — 13 цифр';
+    if (d.form === 'org' && d.kpp.length !== 9) e.kpp = 'КПП — 9 цифр';
+    if (d.bik.length !== 9) e.bik = 'БИК — 9 цифр';
+    else if (!accOk(d.acc, d.bik)) e.acc = 'Счёт не сходится с БИК — проверьте цифры';
+    return e;
+  }
+  function viewRequisites() {
+    var R = S.req, change = R.mode === 'change';
+    var d = R.draft || { form: change && R.data ? R.data.form : 'ip', name: '', inn: '', ogrnip: '', ogrn: '', kpp: '', bik: '', acc: '' };
+    R.draft = d;
+    var opts = Object.keys(FORMS).map(function (k) { return '<option value="' + k + '"' + (d.form === k ? ' selected' : '') + '>' + FORMS[k] + '</option>'; }).join('');
+    return '<div class="stack w-640" style="gap:14px">' +
+      '<h2 class="screen-h">' + (change ? 'Новые реквизиты' : 'Реквизиты для выплат') + '</h2>' +
+      '<div class="sub">' + (change ? 'Менеджер по партнёрам проверит заявку и применит новые реквизиты. До этого выплаты идут по прежним.'
+        : 'Заполните один раз — без реквизитов выплаты не начнутся. Изменить потом можно только через заявку менеджеру по партнёрам.') + '</div>' +
+      '<form class="stack" id="reqForm" novalidate>' +
+        '<div class="field"><label for="rq-form">Форма работы</label><select class="input" id="rq-form">' + opts + '</select></div>' +
+        reqFields(d.form).map(function (f) {
+          var num = f[0] !== 'name';
+          return '<div class="field"><label for="rq-' + f[0] + '">' + f[1] + ' <span class="req">*</span></label>' +
+            '<input class="input' + (num ? ' num' : '') + '" id="rq-' + f[0] + '"' + (num ? ' inputmode="numeric"' : '') + ' value="' + esc(d[f[0]]) + '"' + (f[2] ? ' placeholder="' + f[2] + '"' : '') + '>' +
+            (f[0] === 'bik' ? '<span class="hint" id="bankName">' + esc(BANKS[d.bik] || 'Банк определится по БИК') + '</span>' : '') +
+            '<span class="err" id="re-' + f[0] + '" hidden></span></div>';
+        }).join('') +
+        '<div class="row" style="flex-wrap:wrap"><button class="btn primary" type="submit">Далее</button>' +
+        '<button class="link-btn" type="button" data-action="req-sample">Заполнить примером (только в прототипе)</button></div>' +
+      '</form></div>';
+  }
+  function viewRequisitesCheck() {
+    var R = S.req, d = R.draft, change = R.mode === 'change';
+    var rows = '<dt>Форма работы</dt><dd>' + FORMS[d.form] + '</dd>' +
+      reqFields(d.form).map(function (f) {
+        var v = f[0] === 'acc' ? accGroups(d.acc) : d[f[0]];
+        return '<dt>' + f[1] + '</dt><dd class="num">' + esc(v) + '</dd>' + (f[0] === 'bik' ? '<dt>Банк</dt><dd>' + esc(BANKS[d.bik] || 'по справочнику БИК') + '</dd>' : '');
+      }).join('');
+    return '<div class="stack w-640" style="gap:14px">' +
+      '<h2 class="screen-h">Проверьте реквизиты</h2>' +
+      '<div class="sub">Ошибка в реквизитах — деньги уйдут не туда или вернутся. Сверьте каждую цифру.</div>' +
+      '<section class="card"><dl class="kv">' + rows + '</dl></section>' +
+      '<div class="banner warn"><span>' + (change ? 'Заявка уйдёт менеджеру по партнёрам: он сверит и применит новые реквизиты.'
+        : 'После сохранения изменить реквизиты можно только через заявку менеджеру по партнёрам.') + '</span></div>' +
+      '<form class="stack" id="reqCheck" novalidate>' +
+        '<label class="check"><input type="checkbox" id="rqOk"><span>Данные верные <span class="req">*</span></span></label>' +
+        '<span class="err" id="rqOkErr" hidden>Подтвердите, что данные верные</span>' +
+        '<div class="row" style="flex-wrap:wrap"><button class="btn primary" type="submit">' + (change ? 'Отправить заявку' : 'Сохранить реквизиты') + '</button>' +
+        '<a class="btn" href="#requisites' + (change ? '/change' : '') + '">Исправить</a></div>' +
+      '</form></div>';
+  }
+
+  /* ===================== Каркас и маршруты ===================== */
+  var elApp = document.getElementById('app');
+  var elView = document.getElementById('view');
+  var elHead = document.getElementById('head');
+  var elTab = document.getElementById('tabbar');
+  var elToast = document.getElementById('toast');
+  var elStage = document.getElementById('stage');
+  var narrowMQ = window.matchMedia('(max-width: 780px)');
+  var toastTimer = null;
+
+  function toast(msg) {
+    elToast.textContent = msg;
+    elToast.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { elToast.hidden = true; }, 3200);
+  }
+
+  function route() {
+    var h = (location.hash || '#login').slice(1).split('/');
+    return { name: h[0] || 'login', arg: h[1], arg2: h[2] };
+  }
+
+  function render() {
+    var r = route();
+    var html, title = '', back = '', noteKey = r.name, tab = r.name;
+    switch (r.name) {
+      case 'home': html = viewHome(); break;
+      case 'clients': html = viewClients(); break;
+      case 'client': html = viewClient(+r.arg); title = 'Карточка клиента'; back = '#clients'; noteKey = 'client'; tab = 'clients'; break;
+      case 'transfer':
+        if (r.arg === 'done') { html = viewTransferDone(+r.arg2); title = 'Готово'; } else html = viewTransfer();
+        break;
+      case 'money': html = viewMoney(); break;
+      case 'more': html = viewMore(); break;
+      case 'docs': html = viewDocs(); title = 'Документы'; back = '#more'; tab = 'more'; break;
+      case 'profile': html = viewProfile(); title = 'Профиль и реквизиты'; back = '#more'; tab = 'more'; break;
+      case 'requisites':
+        var R = S.req;
+        if (r.arg === 'check') {
+          if (!R.draft) { location.hash = '#requisites'; return; }
+          html = viewRequisitesCheck(); title = 'Проверка реквизитов';
+        } else {
+          var mode = r.arg === 'change' ? 'change' : 'first';
+          if (mode === 'change' && R.status !== 'saved') { location.hash = '#requisites'; return; }
+          if (mode !== R.mode) { R.mode = mode; R.draft = null; }
+          // первый ввод показываем за нового партнёра: прежние реквизиты в прототипе сбрасываются
+          if (mode === 'first' && R.status === 'saved') { R.status = 'empty'; R.data = null; R.request = null; R.draft = null; }
+          html = viewRequisites(); title = 'Реквизиты';
+        }
+        back = '#profile'; tab = 'more'; noteKey = R.mode === 'change' ? 'profile' : 'requisites';
+        break;
+      default: r.name = 'login'; noteKey = 'login'; html = viewLogin();
+    }
+
+    var isLogin = r.name === 'login';
+    elApp.classList.toggle('no-side', isLogin);
+    elTab.hidden = isLogin;
+    if (isLogin) {
+      elHead.innerHTML = '<span class="brand">' + I.logo + 'Кабинет партнёра</span>';
+    } else if (back) {
+      elHead.innerHTML = '<a class="icon-btn" href="' + back + '" aria-label="Назад">' + I.back + '</a><span class="head-title">' + title + '</span><span class="updated">обновлено ' + UPDATED + '</span>';
+    } else {
+      elHead.innerHTML = '<span class="brand">' + I.logo + 'Кабинет партнёра</span><span class="updated">обновлено ' + UPDATED + '</span>';
+    }
+    var tabs = [['home', 'Главная', I.home], ['clients', 'Клиенты', I.clients], ['transfer', 'Передать клиента', I.plus], ['money', 'Вознаграждение', I.money], ['more', 'Ещё', I.more]];
+    var shortLabel = { transfer: 'Передать', money: 'Деньги' };
+    elTab.innerHTML = tabs.map(function (t) {
+      var cur = tab === t[0] ? ' aria-current="page"' : '';
+      var label = '<span class="lbl-short only-narrow">' + (shortLabel[t[0]] || t[1]) + '</span><span class="only-wide">' + t[1] + '</span>';
+      if (t[0] === 'transfer') return '<a class="plus" href="#transfer"' + cur + '><span class="circle">' + t[2] + '</span>' + label + '</a>';
+      return '<a href="#' + t[0] + '"' + cur + '>' + t[2] + label + '</a>';
+    }).join('');
+
+    elView.innerHTML = html;
+    elView.scrollTop = 0;
+    if (narrowMQ.matches) window.scrollTo(0, 0);
+    bindView(r);
+    renderNotes(noteKey, r);
+  }
+
+  function renderNotes(key, r) {
+    var titles = { login: 'Вход', home: 'Главная', clients: 'Мои клиенты', client: 'Карточка клиента', transfer: 'Передать клиента', money: 'Вознаграждение', more: 'Ещё',
+      docs: 'Документы', profile: 'Профиль и реквизиты', requisites: 'Реквизиты: первый ввод' };
+    document.getElementById('noteTitle').textContent = 'Экран: ' + titles[key];
+    document.getElementById('noteBox').innerHTML = '<ul>' + NOTES[key].map(function (n) { return '<li>' + esc(n) + '</li>'; }).join('') + '</ul>' +
+      '<span class="note-tag">Все экраны прототипа</span>';
+    document.getElementById('screenList').innerHTML = SCREENS.map(function (s) {
+      var isCur = s[0] === key || (s[0] === 'client/1' && key === 'client');
+      return '<a href="#' + s[0] + '"' + (isCur ? ' aria-current="page"' : '') + '><span>' + s[1] + '</span><span>п. ' + s[2] + '</span></a>';
+    }).join('');
+  }
+
+  /* ===================== Режим «Телефон / Компьютер» ===================== */
+  function setMode(mode, save) {
+    if (narrowMQ.matches) mode = 'phone';
+    elStage.setAttribute('data-mode', mode);
+    document.querySelectorAll('.mode button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-mode') === mode)); });
+    if (save) { try { localStorage.setItem('zk-proto-mode', mode); } catch (e) { /* хранилище недоступно — не страшно */ } }
+  }
+  document.querySelector('.mode').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-mode]');
+    if (b) setMode(b.getAttribute('data-mode'), true);
+  });
+  var savedMode = 'phone';
+  try { savedMode = localStorage.getItem('zk-proto-mode') || 'phone'; } catch (e) { savedMode = 'phone'; }
+  setMode(savedMode, false);
+
+  /* ===================== Тема «Светлая / Тёмная» ===================== */
+  function setTheme(t, save) {
+    document.documentElement.setAttribute('data-theme', t);
+    document.querySelectorAll('.theme-sw button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-theme-set') === t)); });
+    if (save) { try { localStorage.setItem('zk-proto-theme', t); } catch (e) { /* хранилище недоступно — не страшно */ } }
+  }
+  document.querySelector('.theme-sw').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-theme-set]');
+    if (b) setTheme(b.getAttribute('data-theme-set'), true);
+  });
+  setTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light', false);
+
+  /* ===================== Поведение экранов ===================== */
+  function bindView(r) {
+    if (r.name === 'login') bindLogin();
+    if (r.name === 'clients') bindClients();
+    if (r.name === 'transfer' && r.arg !== 'done') bindTransfer();
+    if (r.name === 'requisites') bindRequisites();
+  }
+
+  var resendTimer = null;
+  function bindLogin() {
+    clearInterval(resendTimer);
+    var af = document.getElementById('acceptForm');
+    if (af) {
+      af.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var ok = document.getElementById('acTerms').checked && document.getElementById('acConsent').checked;
+        document.getElementById('acceptErr').hidden = ok;
+        if (!ok) return;
+        S.accepted = true; S.login.step = 'email';
+        location.hash = '#home';
+      });
+      return;
+    }
+    var f = document.getElementById('loginForm');
+    if (f) {
+      f.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var v = document.getElementById('loginEmail').value.trim();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) { document.getElementById('loginErr').hidden = false; document.getElementById('loginEmail').classList.add('invalid'); return; }
+        S.login.email = v; S.login.step = 'code'; render();
+      });
+      return;
+    }
+    var cf = document.getElementById('codeForm');
+    var code = document.getElementById('loginCode');
+    code.focus();
+    code.addEventListener('input', function () { code.value = digits(code.value).slice(0, 6); });
+    cf.addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (digits(code.value).length !== 6) { document.getElementById('codeErr').hidden = false; code.classList.add('invalid'); return; }
+      if (!S.accepted) { S.login.step = 'accept'; render(); return; }
+      S.login.step = 'email';
+      location.hash = '#home';
+    });
+    var left = 59, rs = document.getElementById('resend');
+    resendTimer = setInterval(function () {
+      left--;
+      if (!document.body.contains(rs)) { clearInterval(resendTimer); return; }
+      if (left <= 0) {
+        clearInterval(resendTimer);
+        rs.innerHTML = '<button class="link-btn" type="button" data-toast="Новый код отправлен. Прежний больше не действует.">Отправить код ещё раз</button>';
+      } else rs.textContent = 'Отправить ещё раз через 0:' + pad(left);
+    }, 1000);
+  }
+
+  function refreshList() { document.getElementById('clientList').innerHTML = clientListHTML(); }
+  function bindClients() {
+    var q = document.getElementById('q');
+    q.addEventListener('input', function () { S.search = q.value; refreshList(); });
+    document.getElementById('period').addEventListener('change', function (e) { S.period = e.target.value; refreshList(); });
+    document.getElementById('village').addEventListener('change', function (e) { S.village = e.target.value; refreshList(); });
+  }
+
+  function readReq() {
+    var d = S.req.draft;
+    d.form = document.getElementById('rq-form').value;
+    reqFields(d.form).forEach(function (fl) {
+      var el = document.getElementById('rq-' + fl[0]);
+      if (el) d[fl[0]] = fl[0] === 'name' ? el.value : digits(el.value);
+    });
+  }
+  function bindRequisites() {
+    var R = S.req;
+    var cf = document.getElementById('reqCheck');
+    if (cf) {
+      cf.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var ok = document.getElementById('rqOk').checked;
+        document.getElementById('rqOkErr').hidden = ok;
+        if (!ok) return;
+        if (R.mode === 'change') {
+          R.request = TODAY;
+          toast('Заявка отправлена менеджеру по партнёрам.');
+        } else {
+          R.data = R.draft; R.status = 'saved';
+          toast('Реквизиты сохранены. На e-mail отправлено письмо-подтверждение.');
+        }
+        R.draft = null;
+        location.hash = '#profile';
+      });
+      return;
+    }
+    var f = document.getElementById('reqForm');
+    document.getElementById('rq-form').addEventListener('change', function () { readReq(); render(); });
+    var bik = document.getElementById('rq-bik');
+    bik.addEventListener('input', function () { document.getElementById('bankName').textContent = BANKS[digits(bik.value)] || 'Банк определится по БИК'; });
+    f.addEventListener('submit', function (e) {
+      e.preventDefault();
+      readReq();
+      var errs = reqErrors(R.draft), firstBad = null;
+      reqFields(R.draft.form).forEach(function (fl) {
+        var el = document.getElementById('rq-' + fl[0]), er = document.getElementById('re-' + fl[0]);
+        er.hidden = !errs[fl[0]];
+        er.textContent = errs[fl[0]] || '';
+        el.classList.toggle('invalid', !!errs[fl[0]]);
+        if (errs[fl[0]] && !firstBad) firstBad = el;
+      });
+      if (firstBad) { firstBad.focus(); return; }
+      location.hash = '#requisites/check';
+    });
+  }
+
+  function bindTransfer() {
+    var f = document.getElementById('tf');
+    var phone = document.getElementById('tfPhone');
+    var email = document.getElementById('tfEmail');
+    function method() { return f.querySelector('input[name="method"]:checked').value; }
+    function sync() {
+      var m = method();
+      document.getElementById('plotReq').hidden = m !== 'deal';
+      document.getElementById('pickFields').hidden = m !== 'pick';
+    }
+    function isDup() {
+      var d = digits(phone.value);
+      var e = email.value.trim().toLowerCase();
+      /* «уже в базе» — только демо-номера на …00; свой клиент партнёра — не «из базы» (ответ кабинета — к разбору прототипа) */
+      return d.length === 11 && d.slice(-2) === '00';
+    }
+    function checkDup() { document.getElementById('dup').hidden = !isDup(); }
+    f.addEventListener('change', function (e) { if (e.target.name === 'method') sync(); });
+    phone.addEventListener('input', function () {
+      var d = digits(phone.value);
+      if (d[0] === '8') d = '7' + d.slice(1);
+      if (d && d[0] !== '7') d = '7' + d;
+      d = d.slice(0, 11);
+      var out = d ? '+7' : '';
+      if (d.length > 1) out += ' ' + d.slice(1, 4);
+      if (d.length > 4) out += ' ' + d.slice(4, 7);
+      if (d.length > 7) out += '-' + d.slice(7, 9);
+      if (d.length > 9) out += '-' + d.slice(9, 11);
+      phone.value = out;
+      checkDup();
+    });
+    email.addEventListener('change', checkDup);
+    sync();
+
+    f.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var firstBad = null;
+      function need(cond, inputId, errId) {
+        var inp = document.getElementById(inputId);
+        document.getElementById(errId).hidden = cond;
+        inp.classList.toggle('invalid', !cond);
+        if (!cond && !firstBad) firstBad = inp;
+      }
+      var name = document.getElementById('tfName').value.trim();
+      var m = method();
+      var plot = document.getElementById('tfPlot').value.trim();
+      need(!!name, 'tfName', 'eName');
+      need(digits(phone.value).length === 11, 'tfPhone', 'ePhone');
+      need(m !== 'deal' || !!plot, 'tfPlot', 'ePlot');
+      need(document.getElementById('tfConsent').checked, 'tfConsent', 'eConsent');
+      if (firstBad) { firstBad.focus(); return; }
+      var village = document.getElementById('tfVillage').value;
+      var vil = VILLAGES.filter(function (v) { return v.name === village; })[0];
+      var dir = vil ? vil.dir : '';
+      var dup = isDup();
+      var id = clients.reduce(function (mx, c) { return Math.max(mx, c.id); }, 0) + 1;
+      clients.unshift({
+        id: id, name: name, phone: phone.value, email: email.value.trim(), dir: dir, method: m,
+        village: village || 'посёлок не выбран', plot: plot, budget: document.getElementById('tfBudget').value.trim(),
+        areaWish: document.getElementById('tfArea').value.trim(), passed: TODAY, changed: TODAY, stage: m === 'self' ? 2 : 1,
+        manager: m === 'self' ? '' : 'будет назначен', rate: dup ? RATES.base : RATES[m], fixedUntil: addMonths(TODAY, 6), dup: dup,
+        path: m === 'self' ? [[1, TODAY], [2, TODAY]] : [[1, TODAY]],
+        history: [[TODAY, dup ? 'Вы передали клиента; он уже был в базе компании' : 'Вы передали клиента']]
+      });
+      location.hash = '#transfer/done/' + id;
+    });
+  }
+
+  /* Делегирование кликов внутри кабинета */
+  elApp.addEventListener('click', function (e) {
+    var t = e.target.closest('[data-toast],[data-action],[data-filter],[data-tab],tr[data-href]');
+    if (!t) return;
+    if (t.hasAttribute('data-toast')) { toast(t.getAttribute('data-toast')); return; }
+    if (t.matches('tr[data-href]')) { if (!e.target.closest('a')) location.hash = t.getAttribute('data-href'); return; }
+    if (t.hasAttribute('data-filter')) {
+      S.filter = t.getAttribute('data-filter');
+      document.querySelectorAll('.chip').forEach(function (ch) { ch.setAttribute('aria-pressed', String(ch === t)); });
+      refreshList();
+      return;
+    }
+    if (t.hasAttribute('data-tab')) { S.moneyTab = t.getAttribute('data-tab'); render(); return; }
+    var a = t.getAttribute('data-action');
+    if (a === 'excel') toast('Файл «Мои клиенты.xlsx» сформирован: клиенты по текущим фильтрам, телефоны полностью. В прототипе файл не скачивается.');
+    if (a === 'reset') { S.filter = 'all'; S.search = ''; S.period = 'all'; S.village = ''; render(); }
+    if (a === 'login-back') { S.login.step = 'email'; render(); }
+    if (a === 'logout') { S.login.step = 'email'; location.hash = '#login'; }
+    if (a === 'req-sample') {
+      readReq();
+      var smp = REQ_SAMPLE[S.req.draft.form];
+      Object.keys(smp).forEach(function (k) { S.req.draft[k] = smp[k]; });
+      render();
+    }
+  });
+
+  /* Пояснения: на узком экране свёрнуты */
+  if (narrowMQ.matches) document.getElementById('about').open = false;
+
+  window.addEventListener('hashchange', render);
+  render();
+})();
+</script>
+</body>
+</html>
